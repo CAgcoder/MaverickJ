@@ -1,0 +1,30 @@
+{
+  "advocate_response": {
+    "agentRole": "advocate",
+    "arguments": [
+      {
+        "id": "ADV-R1-01",
+        "claim": "Go 的内存占用仅为 Java 的 1/10，可显著降低部署成本",
+        "reasoning": "Go 编译为原生二进制文件，无需 JVM，容器镜像更小，云服务费用可降低 50-70%",
+        "evidence": "多家公司（如 Uber、Twitch）迁移后报告了类似的成本降低",
+        "status": "active"
+      },
+      {
+        "id": "ADV-R1-02",
+        "claim": "Go 的冷启动时间远优于 Java，适合 Serverless 架构",
+        "reasoning": "Go 程序冷启动通常在毫秒级，而 Java + Spring Boot 需要数秒甚至十几秒",
+        "evidence": "AWS Lambda 官方基准测试显示 Go 冷启动比 Java 快 10-100 倍",
+        "status": "active"
+      },
+      {
+        "id": "ADV-R1-03",
+        "claim": "Go 的并发模型（goroutine）比 Java 线程更高效",
+        "reasoning": "goroutine 的内存开销约 2KB，远小于 Java 线程的 1MB，适合高并发 API 网关场景",
+        "status": "active"
+      }
+    ],
+    "rebuttals": [],
+    "concessions": [],
+    "confidenceShift": 0.0
+  }
+}
