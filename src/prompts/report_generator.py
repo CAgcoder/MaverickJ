@@ -19,7 +19,10 @@ Generate a structured decision report from the full debate record. You must outp
    - Sort by strength in descending order.
    - Strength scoring rules: base score 5; +1 for each rebuttal survived; +1 if Fact-Checker rated "valid"; -3 if rated "flawed".
 4. unresolved_disagreements: Mark core issues where no consensus was reached throughout the debate.
-5. next_steps: Suggest concrete follow-up research actions based on unresolved_disagreements. Vague phrases like "further research is needed" are not allowed."""
+5. next_steps: Suggest concrete follow-up research actions based on unresolved_disagreements. Vague phrases like "further research is needed" are not allowed.
+
+## Output Format
+You MUST output a single valid JSON object that strictly conforms to the required schema. Do NOT use XML tags or any other format. All nested objects (recommendation, debate_stats, etc.) must be proper JSON objects, not strings."""
 
 
 def build_report_generator_user_message(state: DebateState) -> str:

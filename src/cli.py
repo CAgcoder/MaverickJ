@@ -110,6 +110,11 @@ def _build_followup_context(state) -> str:
     return "\n".join(lines)
 
 
+def _sanitize(text: str) -> str:
+    """移除无法被 UTF-8 编码的 surrogate 字符（来自 macOS 终端/Docker TTY 的编码问题）"""
+    return text.encode("utf-8", errors="replace").decode("utf-8")
+
+
 async def _interactive_loop() -> None:
     """交互式主循环"""
     config = load_config()
@@ -117,7 +122,7 @@ async def _interactive_loop() -> None:
     while True:
         console.print()
         try:
-            question = console.input("[bold cyan]📋 请输入决策问题:[/bold cyan] ").strip()
+            question = _sanitize(console.input("[bold cyan]📋 请输入决策问题:[/bold cyan] ").strip())
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -126,7 +131,7 @@ async def _interactive_loop() -> None:
         if question.lower() in ("quit", "exit", "q"):
             break
 
-        context = console.input("[dim]📎 补充背景（可选，按回车跳过）:[/dim] ").strip() or None
+        context = _sanitize(console.input("[dim]📎 补充背景（可选，按回车跳过）:[/dim] ").strip()) or None
 
         console.print()
         try:
@@ -168,6 +173,7 @@ async def _interactive_loop() -> None:
                 if not followup:
                     continue
                 followup_context = _build_followup_context(state)
+                followup = _sanitize(followup)
                 console.print()
                 try:
                     state = await run_debate(followup, config, followup_context)

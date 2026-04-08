@@ -42,6 +42,6 @@ class ModelRouter:
         return self._models[agent_role]
 
     def get_structured_model(self, agent_role: str, schema: type[BaseModel]) -> Runnable:
-        """返回带结构化输出的模型"""
+        """返回带结构化输出的模型（使用 json_mode 避免 Claude XML tool-call 解析异常）"""
         model = self.get_model(agent_role)
-        return model.with_structured_output(schema)
+        return model.with_structured_output(schema, method="json_mode")
