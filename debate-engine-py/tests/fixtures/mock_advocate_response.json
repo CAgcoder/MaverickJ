@@ -1,0 +1,29 @@
+{
+  "agent_role": "advocate",
+  "arguments": [
+    {
+      "id": "ADV-R1-01",
+      "claim": "Go 语言编译后二进制体积小，部署成本显著降低",
+      "reasoning": "相比 JVM 约 200-500MB 的运行时内存，Go 服务通常只需 20-50MB",
+      "evidence": "多家公司迁移后报告容器资源降低 60-80%",
+      "status": "active"
+    },
+    {
+      "id": "ADV-R1-02",
+      "claim": "Go 冷启动速度远超 Java，适合 Serverless 场景",
+      "reasoning": "Go 编译为原生二进制，启动时间在毫秒级，而 JVM 需要数秒",
+      "evidence": "AWS Lambda 冷启动测试数据显示 Go 约 50ms，Java 约 3-5s",
+      "status": "active"
+    },
+    {
+      "id": "ADV-R1-03",
+      "claim": "Go 的并发模型更适合微服务架构",
+      "reasoning": "goroutine 比 Java 线程轻量得多，天然适合高并发 API Gateway",
+      "evidence": null,
+      "status": "active"
+    }
+  ],
+  "rebuttals": [],
+  "concessions": [],
+  "confidence_shift": 0.0
+}

@@ -1,0 +1,33 @@
+{
+  "agent_role": "critic",
+  "arguments": [
+    {
+      "id": "CRT-R1-01",
+      "claim": "迁移成本极高，需要重写大量业务代码",
+      "reasoning": "3 年积累的 Java 代码库无法自动转换为 Go，需要逐个服务重写",
+      "evidence": "业界大规模语言迁移项目平均耗时 1-2 年",
+      "status": "active"
+    },
+    {
+      "id": "CRT-R1-02",
+      "claim": "Go 生态在企业级应用中不如 Java 成熟",
+      "reasoning": "Spring Boot 提供了完整的企业级解决方案（安全、事务、ORM），Go 需要自己组装",
+      "evidence": null,
+      "status": "active"
+    }
+  ],
+  "rebuttals": [
+    {
+      "target_argument_id": "ADV-R1-01",
+      "counter_claim": "部署成本降低被迁移期间的双系统维护成本抵消",
+      "reasoning": "迁移期间需要同时维护 Java 和 Go 两套系统，运维成本反而上升"
+    },
+    {
+      "target_argument_id": "ADV-R1-02",
+      "counter_claim": "Serverless 场景可以通过 GraalVM 原生编译解决",
+      "reasoning": "Java 的 GraalVM 已支持原生镜像编译，冷启动也能达到 100ms 级别"
+    }
+  ],
+  "concessions": [],
+  "confidence_shift": 0.0
+}

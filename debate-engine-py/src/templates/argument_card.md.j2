@@ -1,0 +1,13 @@
+### {{ index }}. {{ arg.claim }}
+
+- **强度：** {{ arg.strength }}/10
+- **经受挑战次数：** {{ arg.survived_challenges }}
+{% if arg.modifications %}
+- **修正历史：**
+{% for mod in arg.modifications %}
+  - {{ mod }}
+{% endfor %}
+{% endif %}
+{% if arg.supporting_evidence %}
+- **支撑证据：** {{ arg.supporting_evidence }}
+{% endif %}
