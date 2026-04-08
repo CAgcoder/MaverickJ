@@ -75,6 +75,41 @@ def _save_report(state) -> None:
     console.print(f"[green]📄 报告已保存至: {output_file}[/green]")
 
 
+def _build_followup_context(state) -> str:
+    """把上一场辩论的结论整理成追问时的背景上下文"""
+    if not state or not state.final_report:
+        return ""
+
+    report = state.final_report
+    if isinstance(report, dict):
+        report = DecisionReport(**report)
+
+    lines = [
+        f"【上一个辩题】{state.question}",
+        "",
+        f"【辩论结论概要】{report.executive_summary}",
+        "",
+        f"【建议方向】{report.recommendation.direction}"
+        f"（置信度：{report.recommendation.confidence.value}）",
+    ]
+    if report.recommendation.conditions:
+        lines.append("【建议前提条件】" + "；".join(report.recommendation.conditions))
+    if report.pro_arguments:
+        lines += ["", "【主要正面论点】"]
+        for a in report.pro_arguments[:3]:
+            lines.append(f"  - {a.claim}（强度 {a.strength}/10）")
+    if report.con_arguments:
+        lines += ["", "【主要反面论点】"]
+        for a in report.con_arguments[:3]:
+            lines.append(f"  - {a.claim}（强度 {a.strength}/10）")
+    if report.unresolved_disagreements:
+        lines += ["", "【尚未解决的分歧】"]
+        for d in report.unresolved_disagreements[:3]:
+            lines.append(f"  - {d}")
+
+    return "\n".join(lines)
+
+
 async def _interactive_loop() -> None:
     """交互式主循环"""
     config = load_config()
@@ -112,6 +147,7 @@ async def _interactive_loop() -> None:
             console.print("  [cyan][1][/cyan] 新话题")
             console.print("  [cyan][2][/cyan] 保存完整报告")
             console.print("  [cyan][3][/cyan] 退出")
+            console.print("  [cyan][4][/cyan] 追问（基于本次辩论继续提问）")
 
             try:
                 choice = console.input("\n[bold]选择:[/bold] ").strip()
@@ -124,8 +160,26 @@ async def _interactive_loop() -> None:
                 _save_report(state)
             elif choice == "3":
                 return
+            elif choice == "4":
+                try:
+                    followup = console.input("[bold cyan]📋 追问内容:[/bold cyan] ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    return
+                if not followup:
+                    continue
+                followup_context = _build_followup_context(state)
+                console.print()
+                try:
+                    state = await run_debate(followup, config, followup_context)
+                except KeyboardInterrupt:
+                    console.print("\n[yellow]辩论已中断[/yellow]")
+                    continue
+                except Exception as e:
+                    console.print(f"\n[red]辩论出错: {e}[/red]")
+                    continue
+                _print_summary(state)
             else:
-                console.print("[dim]请输入 1、2 或 3[/dim]")
+                console.print("[dim]请输入 1、2、3 或 4[/dim]")
 
 
 def main():
