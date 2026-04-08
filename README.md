@@ -36,6 +36,12 @@
 
 Auto-Gangjing 是一个基于多 Agent 协作的辩论式决策分析引擎。用户输入一个商业决策问题后，系统会启动 **4 个具有不同角色定位的 AI Agent**，通过多轮结构化辩论（正方论证 → 反方反驳 → 事实校验 → 主持人裁决），模拟真实的决策审议过程，最终输出一份包含正反论点、关键分歧、风险评估和行动建议的 **结构化决策报告**。
 
+AI可以用大量的知识去辅助人类的决策，但是不要让AI取代了你的思考。杠精的存在是为了尽可能消除RLHF(Reinforcement learning from human feedback)对于人类的影响
+
+论文：
+Towards Understanding Sycophancy in Language Models (https://arxiv.org/abs/2310.13548)
+
+
 整个系统采用纯 TypeScript 实现，零框架依赖（不依赖 LangChain 等），通过 Anthropic Claude API 驱动 Agent 的推理与对话。
 
 ---
