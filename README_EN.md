@@ -60,6 +60,20 @@ The entire system is built on **Python 3.12+**, uses **LangGraph** to construct 
 | 📊 **Convergence Judgment** | Moderator calculates a convergence score in real time and terminates debate at the right moment |
 | 📈 **Argument Lifecycle** | Tracks every argument from proposal through survival/refutation |
 
+### Real-World Use Cases
+
+This adversarial analysis framework extends well beyond software decisions. Here are some representative application areas:
+
+- **Corporate Strategy**: M&A evaluation, market entry timing, build-vs-buy technology decisions (see `examples/build_vs_buy.py`) — let stakeholders face the strongest counter-arguments before committing.
+- **Investment Due Diligence**: Surface a target company's core risk factors before a VC/PE investment committee meeting, replacing the one-sided optimism of traditional pitch deck analysis.
+- **Product Roadmap Planning**: Product owners can stress-test each proposed Epic during quarterly planning, preventing groupthink from obscuring user pain points or competitive threats.
+- **Regulatory & Compliance Review**: Simulate opposing stances between regulators and business units before a new policy goes live, identifying compliance blind spots and implementation friction early.
+- **High-Stakes Personal Decisions**: Career pivots, relocation, major purchases — when information is incomplete, structured debate replaces gut instinct and forces you to confront worst-case scenarios.
+- **Academic & Education**: Simulate peer-review scrutiny to help researchers find reasoning gaps before submission; also useful for debate training to generate high-quality opposing arguments.
+- **Consulting & Think Tanks**: Generate a "Red Team" perspective for client strategy reports, replacing consultant subjectivity with a traceable chain of cited arguments.
+
+> **Core Principle**: Any decision that is high-cost, hard to reverse, and made under uncertainty can benefit from structured adversarial analysis.
+
 ---
 
 ## System Architecture
