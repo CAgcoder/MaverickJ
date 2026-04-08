@@ -8,10 +8,87 @@ A production-ready multi-agent debate system built on **LangGraph + LangChain Co
 
 ## Core Architecture
 
-- **Advocate** — Pro-side arguments, round-by-round position revision
-- **Critic** — Con-side rebuttal, must cite specific argument IDs
-- **Fact-Checker** — Neutral logic and factual verification
-- **Moderator** — Convergence scoring, controlling when the debate ends
+### Debate Flow (LangGraph State Graph)
+
+```mermaid
+flowchart TD
+    USER([🧑 User submits decision question]) --> SETUP[round_setup\nInitialize round]
+
+    SETUP --> ADV
+    ADV[🟢 Advocate\nPro-side arguments] --> CRT
+    CRT[🔴 Critic\nCon-side rebuttal] --> FC
+    FC[🔍 Fact-Checker\nNeutral verification] --> MOD
+    MOD[⚖️ Moderator\nScoring & pacing] --> COND{Converged?}
+
+    COND -- No --> SETUP
+    COND -- Yes / Max rounds --> REPORT[report\nGenerate decision report]
+    REPORT --> OUT([📄 Markdown report + terminal output])
+
+    style ADV fill:#22c55e,color:#fff,stroke:none
+    style CRT fill:#ef4444,color:#fff,stroke:none
+    style FC  fill:#3b82f6,color:#fff,stroke:none
+    style MOD fill:#eab308,color:#000,stroke:none
+    style REPORT fill:#8b5cf6,color:#fff,stroke:none
+    style COND fill:#f97316,color:#fff,stroke:none
+```
+
+### System Layer Architecture
+
+```mermaid
+graph TB
+    subgraph OUTPUT["🖥️ Output Layer"]
+        RICH[Rich terminal stream]
+        MD[Markdown report renderer]
+    end
+
+    subgraph GRAPH["🔀 Graph Layer · LangGraph"]
+        BUILDER[StateGraph Builder]
+        NODES[Node functions × 5]
+        CONDS[Convergence conditions]
+    end
+
+    subgraph AGENTS["🤖 Agent Layer"]
+        direction LR
+        A[Advocate] --- C[Critic]
+        C --- F[Fact-Checker]
+        F --- M[Moderator]
+    end
+
+    subgraph LLM["⚡ LLM Layer"]
+        ROUTER[ModelRouter]
+        FACTORY[Model Factory]
+        COST[Cost Calculator]
+        ROUTER --> FACTORY --> COST
+    end
+
+    subgraph PROVIDERS["☁️ LLM Providers"]
+        direction LR
+        ANT[Claude] --- OAI[OpenAI]
+        OAI --- GEM[Gemini]
+    end
+
+    subgraph SCHEMAS["📐 Schema Layer · Pydantic v2"]
+        DS[DebateState]
+        AR[ArgumentRegistry]
+        RPT[DecisionReport]
+    end
+
+    OUTPUT --> GRAPH
+    GRAPH --> AGENTS
+    AGENTS --> LLM
+    LLM --> PROVIDERS
+    GRAPH --> SCHEMAS
+    AGENTS --> SCHEMAS
+```
+
+### Agent Roles
+
+| Agent | Responsibility | Color |
+|-------|---------------|-------|
+| **Advocate** | Builds the strongest pro-side case with arguments and evidence | 🟢 Green |
+| **Critic** | Systematically challenges pro arguments, raises counterpoints | 🔴 Red |
+| **Fact-Checker** | Neutrally audits argument quality, flags logical fallacies | 🔵 Blue |
+| **Moderator** | Controls debate pace, computes convergence score, decides termination | 🟡 Yellow |
 
 ---
 

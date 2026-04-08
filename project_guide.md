@@ -6,10 +6,87 @@
 
 ## 核心架构
 
-- **Advocate**（正方论证者）：构建最强正方论证
-- **Critic**（反方批评者）：系统性挑战正方论点
-- **Fact-Checker**（事实校验者）：中立审视双方论证质量
-- **Moderator**（主持人）：控制辩论节奏，判断收敛
+### 辩论流程（LangGraph 状态图）
+
+```mermaid
+flowchart TD
+    USER([🧑 用户输入决策问题]) --> SETUP[round_setup\n初始化轮次]
+
+    SETUP --> ADV
+    ADV[🟢 Advocate\n正方论证者] --> CRT
+    CRT[🔴 Critic\n反方批评者] --> FC
+    FC[🔍 Fact-Checker\n事实校验者] --> MOD
+    MOD[⚖️ Moderator\n主持人 · 评分] --> COND{收敛？}
+
+    COND -- 否 --> SETUP
+    COND -- 是 / 轮数耗尽 --> REPORT[report\n生成决策报告]
+    REPORT --> OUT([📄 Markdown 报告 + 终端输出])
+
+    style ADV fill:#22c55e,color:#fff,stroke:none
+    style CRT fill:#ef4444,color:#fff,stroke:none
+    style FC  fill:#3b82f6,color:#fff,stroke:none
+    style MOD fill:#eab308,color:#000,stroke:none
+    style REPORT fill:#8b5cf6,color:#fff,stroke:none
+    style COND fill:#f97316,color:#fff,stroke:none
+```
+
+### 系统分层架构
+
+```mermaid
+graph TB
+    subgraph OUTPUT["🖥️ Output Layer"]
+        RICH[Rich 终端流式输出]
+        MD[Markdown 报告渲染]
+    end
+
+    subgraph GRAPH["🔀 Graph Layer  · LangGraph"]
+        BUILDER[StateGraph Builder]
+        NODES[节点函数 × 5]
+        CONDS[收敛条件判定]
+    end
+
+    subgraph AGENTS["🤖 Agent Layer"]
+        direction LR
+        A[Advocate] --- C[Critic]
+        C --- F[Fact-Checker]
+        F --- M[Moderator]
+    end
+
+    subgraph LLM["⚡ LLM Layer"]
+        ROUTER[ModelRouter]
+        FACTORY[Model Factory]
+        COST[Cost Calculator]
+        ROUTER --> FACTORY --> COST
+    end
+
+    subgraph PROVIDERS["☁️ LLM Providers"]
+        direction LR
+        ANT[Claude] --- OAI[OpenAI]
+        OAI --- GEM[Gemini]
+    end
+
+    subgraph SCHEMAS["📐 Schema Layer · Pydantic v2"]
+        DS[DebateState]
+        AR[ArgumentRegistry]
+        RPT[DecisionReport]
+    end
+
+    OUTPUT --> GRAPH
+    GRAPH --> AGENTS
+    AGENTS --> LLM
+    LLM --> PROVIDERS
+    GRAPH --> SCHEMAS
+    AGENTS --> SCHEMAS
+```
+
+### Agent 角色说明
+
+| Agent | 职责 | 颜色标识 |
+|-------|------|----------|
+| **Advocate** 正方论证者 | 构建最强正方论证，提出支持论点与证据 | 🟢 绿色 |
+| **Critic** 反方批评者 | 系统性挑战正方论点，提出反驳与替代方案 | 🔴 红色 |
+| **Fact-Checker** 事实校验者 | 中立审视双方论证质量，标记逻辑谬误 | 🔵 蓝色 |
+| **Moderator** 主持人 | 控制辩论节奏，计算收敛分数，决定终止 | 🟡 黄色 |
 
 ## 技术栈
 
