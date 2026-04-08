@@ -58,3 +58,11 @@ docker compose build && docker compose run --rm debate  # Docker
 - Prompts co-located by agent role in `src/prompts/`
 - Tests mirror `src/` structure under `tests/`
 - Examples in `examples/` follow: load config → define question → run_debate → render → save
+
+## Documentation Maintenance
+
+After **every code change**, update the documentation to reflect the change:
+
+1. **`project_guide.md`** (Chinese) — update any affected sections (architecture, config, usage, project structure, FAQ, etc.)
+2. **`project_guide_EN.md`** (English) — apply the same updates in English, keeping both files in sync
+3. Both files must stay consistent with each other at all times. Never update one without updating the other.
