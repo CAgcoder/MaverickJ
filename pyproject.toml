@@ -2,7 +2,6 @@
 name = "debate-engine"
 version = "0.1.0"
 description = "Multi-Agent debate-driven decision engine"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "langchain-core>=0.3.0",
