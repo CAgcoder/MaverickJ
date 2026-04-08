@@ -2,20 +2,20 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# 安装系统依赖
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# 先复制依赖文件，利用 Docker 缓存
+# Copy dependency files first to leverage Docker layer cache
 COPY pyproject.toml ./
 
-# 安装 Python 依赖
+# Install Python dependencies
 RUN pip install --no-cache-dir -e .
 
-# 复制项目源码
+# Copy project source code
 COPY src/ ./src/
 COPY config.yaml ./
 
-# 交互式 CLI 入口
+# Interactive CLI entrypoint
 CMD ["python", "-m", "src.cli"]

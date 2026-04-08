@@ -1,7 +1,7 @@
 [project]
 name = "debate-engine"
 version = "0.1.0"
-description = "多 Agent 辩论式决策引擎"
+description = "Multi-Agent debate-driven decision engine"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

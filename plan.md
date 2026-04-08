@@ -1,558 +1,940 @@
-# 多 Agent 辩论式决策引擎 — 项目实施计划
+# 多 Agent 辩论式决策引擎 — 项目实施计划（Python 版）
 
 ## 1. 项目概述
 
 构建一个多 Agent 协作系统，用户输入商业决策问题后，系统启动 4 个专职 Agent 进行多轮结构化辩论，最终输出包含正反论点、关键分歧和建议的决策报告。
 
-**核心价值：** 不是简单的 pros/cons 列表，而是通过 Agent 间的动态对抗、引用反驳、立场修正和事实校验，模拟真实的决策审议过程，产出经过压力测试的高质量决策分析。
+**核心价值：** 通过 Agent 间的动态对抗、引用反驳、立场修正和事实校验，模拟真实的决策审议过程，产出经过压力测试的高质量决策分析。
 
 ---
 
-## 2. 系统架构
+## 2. 技术栈选型
+
+| 组件 | 选择 | 理由 |
+|------|------|------|
+| 语言 | Python 3.12 | AI agent 生态主流，框架支持最好 |
+| Agent 编排 | **LangGraph** | 原生支持有状态的多 Agent 循环图，天然适合"多轮辩论直到收敛"这种动态流程。比 LangChain 的 AgentExecutor 灵活得多——后者是线性链，LangGraph 是图，支持条件分支和循环 |
+| LLM 抽象 | **LangChain Core** | 只用它的模型抽象层（`BaseChatModel`、`ChatPromptTemplate`），不用它的 Agent/Chain 上层封装。这样拿到多 provider 统一接口（Claude/OpenAI/Gemini 开箱即用），又不被框架绑死 |
+| 数据校验 | **Pydantic v2** | LLM 输出的 JSON 校验、所有核心数据结构的定义。LangChain 本身就基于 Pydantic，无缝集成 |
+| 结构化输出 | LangChain 的 `with_structured_output()` | 把 Pydantic model 直接传给 LLM 调用，自动处理各家模型的 JSON mode 差异（Claude 用 tool_use 模式、OpenAI 用 json_mode、Gemini 用 response_schema）。这解决了你之前担心的 JSON 输出一致性问题 |
+| 配置管理 | **Pydantic Settings** | 从 YAML / 环境变量加载配置，带类型校验 |
+| 测试 | **pytest** + pytest-asyncio | 标准选择 |
+| 异步 | **asyncio** | LLM 调用天然是 IO 密集的，异步可以在未来支持并行评估 |
+
+**为什么用 LangGraph 而不是纯手写编排：**
+
+你之前 TS 版本里的 Orchestrator 本质上就是在手动实现一个状态机——"Advocate 发言 → Critic 发言 → FactChecker 校验 → Moderator 裁决 → 条件判断是否继续"。LangGraph 就是做这件事的专用工具。它给你的是：内置的状态管理（不用自己维护 `DebateState` 的传递）、可视化的执行图、checkpoint/resume（辩论可以中断恢复）、内置的流式输出。你把精力放在 Agent 逻辑和 prompt 上，而不是编排基础设施上。
+
+**为什么还要用 LangChain Core：**
+
+只用它的最底层——`ChatOpenAI`、`ChatAnthropic`、`ChatGoogleGenerativeAI` 这些模型封装。它们实现了统一的 `BaseChatModel` 接口，你的 Agent 代码调用 `model.invoke(messages)` 就行，底层是 Claude 还是 GPT 完全透明。不用 LangChain 的 Agent、Chain、Memory 等上层抽象，那些对你这个项目来说是过度封装。
+
+---
+
+## 3. 系统架构
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   用户界面层                      │
-│         输入决策问题 → 实时辩论流 → 决策报告        │
-└────────────────────┬────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────┐
-│              Orchestrator 编排层                  │
-│                                                  │
-│  ┌──────────┐  回合调度 / 状态管理 / 收敛判定      │
-│  │Moderator │◄─────────────────────────────────┐ │
-│  │  Agent   │  控制发言顺序、判断是否收敛、终止辩论 │ │
-│  └────┬─────┘                                  │ │
-│       │ 指令                                    │ │
-│  ┌────▼─────┐  ┌──────────┐  ┌──────────────┐ │ │
-│  │Advocate  │  │ Critic   │  │ Fact-Checker │ │ │
-│  │  Agent   │◄►│  Agent   │  │    Agent     │ │ │
-│  │(正方论证) │  │(反方反驳) │  │(逻辑/事实校验)│ │ │
-│  └──────────┘  └──────────┘  └──────────────┘ │ │
-│       │              │              │          │ │
-│       └──────────────┴──────────────┘          │ │
-│                 共享辩论记录                      │ │
-│              (Debate Transcript)               ──┘ │
-└─────────────────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────┐
-│                  LLM 调用层                      │
-│       统一的 API 客户端 / Prompt 模板管理          │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                      用户界面层                            │
+│           输入决策问题 → 实时辩论流 → 决策报告               │
+└─────────────────────────┬─────────────────────────────────┘
+                          │
+┌─────────────────────────▼─────────────────────────────────┐
+│                  LangGraph 状态图                          │
+│                                                           │
+│  ┌─────────┐    ┌─────────┐    ┌────────────┐            │
+│  │Advocate │───►│ Critic  │───►│Fact-Checker│            │
+│  │  Node   │    │  Node   │    │   Node     │            │
+│  └─────────┘    └─────────┘    └─────┬──────┘            │
+│       ▲                              │                    │
+│       │         ┌────────────┐       │                    │
+│       │         │ Moderator  │◄──────┘                    │
+│       │         │   Node     │                            │
+│       │         └─────┬──────┘                            │
+│       │               │                                   │
+│       │          should_continue()                        │
+│       │           ╱          ╲                            │
+│       └── True ──╱            ╲── False ──► report_node   │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐     │
+│  │              DebateState (共享状态)               │     │
+│  │  question, config, rounds[], argument_registry,  │     │
+│  │  status, convergence_score                       │     │
+│  └─────────────────────────────────────────────────┘     │
+└─────────────────────────┬─────────────────────────────────┘
+                          │
+┌─────────────────────────▼─────────────────────────────────┐
+│               LangChain Model 抽象层                       │
+│                                                           │
+│  ┌──────────────┐  ┌───────────┐  ┌──────────────┐       │
+│  │ChatAnthropic │  │ ChatOpenAI│  │ChatGoogleGen │       │
+│  │  (Claude)    │  │  (GPT)    │  │  (Gemini)    │       │
+│  └──────────────┘  └───────────┘  └──────────────┘       │
+│                                                           │
+│              ModelRouter (配置驱动路由)                     │
+└───────────────────────────────────────────────────────────┘
+```
+
+**LangGraph 的图结构具体定义：**
+
+```
+START → advocate_node → critic_node → fact_checker_node → moderator_node → should_continue
+  ↑                                                                            │
+  └──────────────────── continue (True) ◄──────────────────────────────────────┘
+                                                                               │
+                                                         terminate (False) ────▼
+                                                                         report_node → END
+```
+
+这是一个带条件循环的有向图。LangGraph 的 `StateGraph` 原生支持这种结构，不需要你手动写 while 循环。
+
+---
+
+## 4. 核心数据结构（Pydantic Models）
+
+### 4.1 辩论状态
+
+```python
+from pydantic import BaseModel, Field
+from enum import Enum
+from typing import Optional
+from datetime import datetime
+
+
+class DebateStatus(str, Enum):
+    RUNNING = "running"
+    CONVERGED = "converged"
+    MAX_ROUNDS = "max_rounds"
+    ERROR = "error"
+
+
+class DebateConfig(BaseModel):
+    max_rounds: int = 5
+    convergence_threshold: int = 2        # 连续几轮无新论点视为收敛
+    convergence_score_target: float = 0.8  # convergenceScore 达到多少终止
+    language: str = "auto"                 # "auto" = 跟随用户输入语言
+    transcript_compression_after_round: int = 2  # 第几轮开始压缩历史
+
+
+class DebateMetadata(BaseModel):
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    total_llm_calls: int = 0
+    total_tokens_used: int = 0
+    total_cost_usd: float = 0.0
+
+
+class DebateState(BaseModel):
+    """LangGraph 的共享状态对象，在所有 node 之间传递"""
+    id: str
+    question: str
+    context: Optional[str] = None          # 用户补充的背景信息
+    config: DebateConfig
+    rounds: list["DebateRound"] = []
+    argument_registry: dict[str, "ArgumentRecord"] = {}  # arg_id → 完整记录
+    current_round: int = 0
+    status: DebateStatus = DebateStatus.RUNNING
+    convergence_reason: Optional[str] = None
+    final_report: Optional["DecisionReport"] = None
+    metadata: DebateMetadata
+```
+
+### 4.2 论点与反驳
+
+```python
+class ArgumentStatus(str, Enum):
+    ACTIVE = "active"
+    REBUTTED = "rebutted"
+    CONCEDED = "conceded"
+    MODIFIED = "modified"
+
+
+class Argument(BaseModel):
+    id: str                                # 如 "ADV-R1-01"
+    claim: str                             # 论点主张
+    reasoning: str                         # 推理过程
+    evidence: Optional[str] = None         # 支撑证据
+    status: ArgumentStatus = ArgumentStatus.ACTIVE
+
+
+class Rebuttal(BaseModel):
+    target_argument_id: str                # 反驳哪个论点
+    counter_claim: str
+    reasoning: str
+
+
+class ArgumentRecord(BaseModel):
+    """ArgumentRegistry 中存储的完整论点生命周期"""
+    argument: Argument
+    raised_in_round: int
+    raised_by: str                         # "advocate" | "critic"
+    rebuttals: list[Rebuttal] = []
+    fact_checks: list["FactCheck"] = []
+    modification_history: list[str] = []   # 每次修正的记录
+```
+
+### 4.3 Agent 响应
+
+```python
+class AgentResponse(BaseModel):
+    """Advocate 和 Critic 的通用输出格式"""
+    agent_role: str
+    arguments: list[Argument]              # 本轮提出的论点
+    rebuttals: list[Rebuttal] = []         # 对对方论点的反驳
+    concessions: list[str] = []            # 承认对方有道理的部分
+    confidence_shift: float = 0.0          # 本轮立场变化 [-1, 1]
+
+
+class FactCheckVerdict(str, Enum):
+    VALID = "valid"
+    FLAWED = "flawed"
+    NEEDS_CONTEXT = "needs_context"
+    UNVERIFIABLE = "unverifiable"
+
+
+class FactCheck(BaseModel):
+    target_argument_id: str
+    verdict: FactCheckVerdict
+    explanation: str
+    correction: Optional[str] = None
+    fallacy_type: Optional[str] = None     # 如发现谬误，标注类型
+
+
+class FactCheckResponse(BaseModel):
+    checks: list[FactCheck]
+    overall_assessment: str
+
+
+class ModeratorResponse(BaseModel):
+    round_summary: str
+    key_divergences: list[str]             # 当前关键分歧
+    convergence_score: float               # 0-1
+    should_continue: bool
+    guidance_for_next_round: Optional[str] = None
+```
+
+### 4.4 辩论回合
+
+```python
+class DebateRound(BaseModel):
+    round_number: int
+    advocate: AgentResponse
+    critic: AgentResponse
+    fact_check: FactCheckResponse
+    moderator: ModeratorResponse
+```
+
+### 4.5 决策报告
+
+```python
+class ConfidenceLevel(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class ScoredArgument(BaseModel):
+    claim: str
+    strength: int                          # 1-10
+    survived_challenges: int               # 经历多少次反驳仍存活
+    modifications: list[str]               # 辩论中被修正的历史
+    supporting_evidence: Optional[str] = None
+
+
+class Recommendation(BaseModel):
+    direction: str                         # 建议方向
+    confidence: ConfidenceLevel
+    conditions: list[str]                  # 建议成立的前提条件
+
+
+class DebateStats(BaseModel):
+    total_rounds: int
+    arguments_raised: int
+    arguments_survived: int
+    convergence_achieved: bool
+    total_tokens: int
+    total_cost_usd: float
+
+
+class DecisionReport(BaseModel):
+    question: str
+    executive_summary: str
+    recommendation: Recommendation
+    pro_arguments: list[ScoredArgument]    # 按 strength 降序
+    con_arguments: list[ScoredArgument]    # 按 strength 降序
+    resolved_disagreements: list[str]
+    unresolved_disagreements: list[str]
+    risk_factors: list[str]
+    next_steps: list[str]
+    debate_stats: DebateStats
+```
+
+### 4.6 模型路由配置
+
+```python
+class ModelAssignment(BaseModel):
+    provider: str                          # "claude" | "openai" | "gemini" | "local"
+    model: str                             # "claude-sonnet-4-20250514" | "gpt-4o" 等
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    fallback: Optional["ModelAssignment"] = None
+
+
+class AgentModelConfig(BaseModel):
+    advocate: ModelAssignment
+    critic: ModelAssignment
+    fact_checker: ModelAssignment
+    moderator: ModelAssignment
+    report_generator: ModelAssignment
+
+
+class DebateEngineConfig(BaseModel):
+    """顶层配置，从 YAML 加载"""
+    default_provider: str = "claude"
+    default_model: str = "claude-sonnet-4-20250514"
+    default_temperature: float = 0.7
+    agents: Optional[AgentModelConfig] = None  # 为空则所有 Agent 用 default
+    debate: DebateConfig = DebateConfig()
 ```
 
 ---
 
-## 3. 核心数据结构
+## 5. Agent 设计详细规格
 
-### 3.1 辩论状态对象 `DebateState`
-
-```typescript
-interface DebateState {
-  id: string;
-  question: string;                    // 用户的决策问题
-  context?: string;                    // 用户提供的补充背景
-  config: DebateConfig;
-  rounds: DebateRound[];               // 所有辩论回合
-  status: "running" | "converged" | "max_rounds" | "error";
-  convergenceReason?: string;          // 收敛原因
-  finalReport?: DecisionReport;        // 最终决策报告
-  metadata: {
-    startedAt: string;
-    completedAt?: string;
-    totalLLMCalls: number;
-    totalTokensUsed: number;
-  };
-}
-
-interface DebateConfig {
-  maxRounds: number;           // 最大辩论回合数，默认 5
-  convergenceThreshold: number; // 连续多少回合无新论点视为收敛，默认 2
-  model: string;               // LLM 模型标识
-  temperature: number;         // 建议 0.7
-  language: "zh" | "en";       // 输出语言
-}
-```
-
-### 3.2 辩论回合 `DebateRound`
-
-```typescript
-interface DebateRound {
-  roundNumber: number;
-  phases: {
-    advocate: AgentResponse;
-    critic: AgentResponse;
-    factCheck: FactCheckResponse;
-    moderator: ModeratorResponse;
-  };
-}
-
-interface AgentResponse {
-  agentRole: string;
-  arguments: Argument[];          // 本轮提出的论点
-  rebuttals: Rebuttal[];          // 对对方论点的反驳
-  concessions: string[];          // 承认对方有道理的部分
-  confidenceShift: number;        // 本轮立场变化 [-1, 1]
-}
-
-interface Argument {
-  id: string;                     // 如 "ADV-R1-01"
-  claim: string;                  // 论点主张
-  reasoning: string;              // 推理过程
-  evidence?: string;              // 支撑证据
-  status: "active" | "rebutted" | "conceded" | "modified";
-}
-
-interface Rebuttal {
-  targetArgumentId: string;       // 反驳哪个论点
-  counterClaim: string;
-  reasoning: string;
-}
-
-interface FactCheckResponse {
-  checks: FactCheck[];
-  overallAssessment: string;
-}
-
-interface FactCheck {
-  targetArgumentId: string;
-  verdict: "valid" | "flawed" | "needs_context" | "unverifiable";
-  explanation: string;
-  correction?: string;
-}
-
-interface ModeratorResponse {
-  roundSummary: string;            // 本轮总结
-  keyDivergences: string[];        // 当前关键分歧
-  convergenceScore: number;        // 0-1，越高越接近收敛
-  shouldContinue: boolean;         // 是否继续辩论
-  guidanceForNextRound?: string;   // 给下一轮的引导方向
-}
-```
-
-### 3.3 决策报告 `DecisionReport`
-
-```typescript
-interface DecisionReport {
-  question: string;
-  executiveSummary: string;               // 一段话总结
-  recommendation: {
-    direction: string;                     // 建议方向
-    confidence: "high" | "medium" | "low";
-    conditions: string[];                  // 建议成立的前提条件
-  };
-  proArguments: ScoredArgument[];          // 正方存活论点（按强度排序）
-  conArguments: ScoredArgument[];          // 反方存活论点
-  resolvedDisagreements: string[];         // 辩论中已解决的分歧
-  unresolvedDisagreements: string[];       // 仍存在的核心分歧
-  riskFactors: string[];                  // 关键风险
-  nextSteps: string[];                    // 建议的后续行动
-  debateStats: {
-    totalRounds: number;
-    argumentsRaised: number;
-    argumentsSurvived: number;
-    convergenceAchieved: boolean;
-  };
-}
-
-interface ScoredArgument {
-  claim: string;
-  strength: number;          // 1-10
-  survivedChallenges: number; // 经历了多少次反驳仍然存活
-  modifications: string[];   // 辩论中被修正的历史
-}
-```
-
----
-
-## 4. Agent 设计详细规格
-
-### 4.1 Advocate Agent（正方论证者）
+### 5.1 Advocate Agent（正方论证者）
 
 **角色定位：** 为决策问题的正方（"应该做"）构建最强论证。
 
-**System Prompt 要点：**
-- 你是一位资深的商业战略顾问，负责论证正方立场
-- 每轮必须产出结构化的 `Argument` 对象数组
-- 第一轮：独立提出 3-5 个核心正方论点
+**System Prompt 关键指令：**
+- 你是资深商业战略顾问，负责论证正方立场
+- 第一轮：独立提出 3-5 个核心正方论点，每个论点必须包含 id（格式 ADV-R{轮次}-{序号}）、claim、reasoning
 - 后续轮次：你会收到 Critic 的反驳和 Fact-Checker 的校验结果
-  - 对被有效反驳的论点：修正立场或承认让步（`concessions`）
-  - 对被部分反驳的论点：补充论证、修正措辞
-  - 引入新论点来强化正方整体论证
-  - 对 Critic 的论点提出你自己的反驳（`rebuttals`）
-- 每轮结束报告 `confidenceShift`：你对正方立场的信心变化
+  - 对被有效反驳（status 变为 rebutted）的论点：修正立场或承认让步
+  - 对被部分反驳的论点：补充论证，将 status 改为 modified
+  - 对 Critic 的论点提出反驳，必须引用 target_argument_id
+  - 可引入新论点强化整体论证
+- 每轮报告 confidence_shift：对正方立场的信心变化（-1 到 1）
 - 禁止无视对方有效反驳、禁止重复已被推翻的论点
 
-**输入：** 决策问题 + 完整辩论记录（所有历史回合） + Moderator 的引导
+**输入构造：** question + transcript（压缩后）+ 上一轮 Moderator 的 guidance_for_next_round + ArgumentRegistry 中所有 active 状态论点的摘要
 
-**输出格式：** 严格按 `AgentResponse` JSON schema 输出
+**输出：** 严格按 `AgentResponse` Pydantic schema（通过 `with_structured_output(AgentResponse)` 强制）
 
-### 4.2 Critic Agent（反方批评者）
+### 5.2 Critic Agent（反方批评者）
 
-**角色定位：** 系统性地挑战正方论点，构建反方论证。
+**角色定位：** 系统性挑战正方论点，构建反方论证。
 
-**System Prompt 要点：**
-- 你是一位严苛的风险分析师，负责找出正方论证的漏洞
-- 每轮工作流：
-  1. 逐条审视 Advocate 的论点，找出逻辑漏洞、隐含假设、缺失考量
-  2. 对每个需要反驳的论点产出 `Rebuttal`
-  3. 提出自己独立的反方论点（`arguments`）
-  4. 对 Advocate 的反驳做回应
-- 如果 Advocate 的某个论点确实无懈可击，承认之（`concessions`）
-- 反驳必须引用 Advocate 的具体论点 ID（`targetArgumentId`）
+**System Prompt 关键指令：**
+- 你是严苛的风险分析师
+- 逐条审视 Advocate 本轮论点，找出逻辑漏洞、隐含假设、缺失考量
+- 每个反驳必须引用 target_argument_id（格式如 ADV-R1-01）
+- 提出自己独立的反方论点（id 格式 CRT-R{轮次}-{序号}）
+- 如果 Advocate 某个论点确实无懈可击，承认之（写入 concessions）
 - 禁止诡辩、稻草人谬误；必须攻击对方的真实论点
 
-**输入：** 决策问题 + 完整辩论记录 + 本轮 Advocate 的输出
+**输入构造：** question + transcript + 本轮 Advocate 的完整输出
 
-**输出格式：** 严格按 `AgentResponse` JSON schema 输出
+**输出：** 严格按 `AgentResponse` Pydantic schema
 
-### 4.3 Fact-Checker Agent（事实校验者）
+### 5.3 Fact-Checker Agent（事实校验者）
 
-**角色定位：** 中立第三方，校验双方论据的逻辑一致性和事实准确性。
+**角色定位：** 中立第三方，校验双方论据的逻辑一致性。
 
-**System Prompt 要点：**
-- 你是一位逻辑学教授，中立审视双方论证
-- 对本轮所有 `active` 状态的论点和反驳进行校验：
-  - `valid`：逻辑自洽、推理合理
-  - `flawed`：存在逻辑谬误或推理错误（指出具体谬误类型）
-  - `needs_context`：论点本身合理但缺少关键上下文才能成立
-  - `unverifiable`：无法在当前信息下判断对错
-- 如果发现某方使用了认知偏误（确认偏误、幸存者偏误等），明确指出
-- 你不选边站，只评估论证质量
+**System Prompt 关键指令：**
+- 你是逻辑学教授，中立审视双方论证
+- 对本轮所有 active 论点和反驳做校验，给出 verdict：
+  - valid：逻辑自洽、推理合理
+  - flawed：存在逻辑谬误（指出具体谬误类型，如确认偏误、幸存者偏误、滑坡谬误等）
+  - needs_context：论点本身合理但缺少关键上下文
+  - unverifiable：当前信息下无法判断
+- 不选边站，只评估论证质量
+- 如果发现某方使用了认知偏误，明确指出
 
-**输入：** 本轮 Advocate 和 Critic 的完整输出
+**输入构造：** 本轮 Advocate 和 Critic 的完整输出（不需要历史 transcript，只看当轮）
 
-**输出格式：** 严格按 `FactCheckResponse` JSON schema 输出
+**输出：** 严格按 `FactCheckResponse` Pydantic schema
 
-### 4.4 Moderator Agent（主持人 / 收敛控制器）
+### 5.4 Moderator Agent（主持人 / 收敛控制器）
 
-**角色定位：** 控制辩论节奏，判断收敛，引导焦点，生成最终报告。
+**角色定位：** 控制辩论节奏，判断收敛，引导焦点。
 
-**System Prompt 要点：**
-- 你是辩论主持人，每轮结束后你需要：
-  1. 总结本轮辩论进展（`roundSummary`）
-  2. 识别当前最关键的未解决分歧（`keyDivergences`）
-  3. 计算收敛分数（`convergenceScore`）：基于
+**System Prompt 关键指令：**
+- 你是辩论主持人，每轮结束后：
+  1. 总结本轮辩论进展（round_summary）
+  2. 识别当前最关键的未解决分歧（key_divergences）
+  3. 计算 convergence_score（0-1），基于：
      - 双方新论点数量是否递减
-     - 让步（concessions）是否增加
-     - 关键分歧是否在收窄
-  4. 判断是否应该继续辩论（`shouldContinue`）
-  5. 如果继续，给出下一轮的焦点引导（`guidanceForNextRound`）
-- 收敛判定规则：
-  - `convergenceScore >= 0.8` 且连续 2 轮无实质性新论点 → 终止
-  - 达到 `maxRounds` → 强制终止
-  - 双方信心变化趋于 0 → 终止
+     - concessions 是否增加
+     - key_divergences 是否在收窄
+     - 双方 confidence_shift 的绝对值是否趋于 0
+  4. 判断 should_continue（基于收敛规则）
+  5. 如果继续，给出下一轮焦点引导（聚焦哪个未解决分歧）
+- 收敛判定：convergence_score >= 0.8 且连续 2 轮无实质性新论点 → False
+- 给出的 round_summary 会被用作历史轮次的压缩替代，所以必须信息完整
 
-**输入：** 完整辩论记录 + 本轮所有 Agent 输出
+**输入构造：** 完整 transcript + 本轮所有 Agent 输出 + ArgumentRegistry 统计信息
 
-**输出格式：** 严格按 `ModeratorResponse` JSON schema 输出 + 终止时输出 `DecisionReport`
-
----
-
-## 5. 编排流程（Orchestrator）
-
-### 5.1 单回合执行流
-
-```
-用户输入问题
-    │
-    ▼
-┌─ Round N ──────────────────────────────────────┐
-│                                                │
-│  Step 1: Advocate 发言                          │
-│    输入: question + history + moderator引导      │
-│    输出: AgentResponse                          │
-│    → 追加到 transcript                          │
-│                                                │
-│  Step 2: Critic 发言                            │
-│    输入: question + history + 本轮advocate输出    │
-│    输出: AgentResponse                          │
-│    → 追加到 transcript                          │
-│                                                │
-│  Step 3: Fact-Checker 校验                      │
-│    输入: 本轮 advocate + critic 输出              │
-│    输出: FactCheckResponse                      │
-│    → 标记被判定 flawed 的论点状态                  │
-│                                                │
-│  Step 4: Moderator 裁决                         │
-│    输入: 完整 transcript + 本轮所有输出            │
-│    输出: ModeratorResponse                      │
-│    → 判断 shouldContinue                        │
-│       - true  → 进入 Round N+1                  │
-│       - false → 进入报告生成                     │
-│                                                │
-└────────────────────────────────────────────────┘
-```
-
-### 5.2 关键实现细节
-
-**a) Transcript 管理**
-
-每次调用 Agent 时，需要将完整的辩论历史作为上下文传入。为了控制 token 消耗：
-- 前 2 轮：传完整 transcript
-- 第 3 轮起：对历史轮次做摘要压缩，只保留当前轮和上一轮的完整内容
-- 使用 Moderator 的 `roundSummary` 作为历史轮次的压缩替代
-
-**b) 论点状态追踪**
-
-维护一个全局的 `ArgumentRegistry`：
-
-```typescript
-class ArgumentRegistry {
-  private arguments: Map<string, Argument & {
-    raisedInRound: number;
-    raisedBy: "advocate" | "critic";
-    rebuttals: Rebuttal[];
-    factChecks: FactCheck[];
-  }>;
-
-  // 注册新论点
-  register(arg: Argument, round: number, agent: string): void;
-  // 更新论点状态（被反驳/修正/让步）
-  updateStatus(argId: string, status: Argument["status"]): void;
-  // 获取所有存活论点
-  getActiveArguments(): Argument[];
-  // 获取论点的完整生命周期
-  getArgumentHistory(argId: string): ArgumentLifecycle;
-  // 生成论点存活统计
-  getSurvivorStats(): SurvivorStats;
-}
-```
-
-**c) 错误处理与重试**
-
-- 单个 Agent 调用失败：重试 2 次，仍然失败则使用该 Agent 上一轮的输出 + 标记
-- JSON 解析失败：要求 LLM 重新格式化（附带 schema 提示）
-- 整轮失败：终止辩论，基于已有轮次生成部分报告
+**输出：** 严格按 `ModeratorResponse` Pydantic schema
 
 ---
 
-## 6. 报告生成逻辑
+## 6. LangGraph 编排设计
 
-辩论终止后，由 Moderator Agent 执行最终报告生成调用：
+### 6.1 状态图定义
 
-**输入：** 完整 `DebateState`（包含所有轮次数据）
+```python
+from langgraph.graph import StateGraph, END
 
-**Prompt 要点：**
+# 定义图
+workflow = StateGraph(DebateState)
 
+# 添加节点
+workflow.add_node("advocate", advocate_node)
+workflow.add_node("critic", critic_node)
+workflow.add_node("fact_checker", fact_checker_node)
+workflow.add_node("moderator", moderator_node)
+workflow.add_node("report", report_node)
+
+# 定义边
+workflow.set_entry_point("advocate")
+workflow.add_edge("advocate", "critic")
+workflow.add_edge("critic", "fact_checker")
+workflow.add_edge("fact_checker", "moderator")
+
+# 条件分支：继续辩论 or 生成报告
+workflow.add_conditional_edges(
+    "moderator",
+    should_continue,       # 条件函数
+    {
+        "continue": "advocate",    # 回到 Advocate 开始新一轮
+        "terminate": "report",     # 进入报告生成
+    }
+)
+workflow.add_edge("report", END)
+
+# 编译
+app = workflow.compile()
 ```
-基于以下完整的辩论记录，生成结构化决策报告。
 
-要求：
-1. executiveSummary：用 3-5 句话概括辩论结论
-2. recommendation：给出建议方向、置信度、前提条件
-   - 置信度基于：正方存活论点强度 vs 反方存活论点强度
-   - 如果双方势均力敌，置信度为 "low"，建议 "需要更多信息"
-3. proArguments / conArguments：
-   - 只包含 status 为 "active" 或 "modified" 的论点
-   - 按 strength 降序排列
-   - strength 评分考虑：经受了多少次反驳仍存活、Fact-Checker 的评价
-4. unresolvedDisagreements：标记辩论中始终无法达成共识的核心问题
-5. nextSteps：基于 unresolvedDisagreements 建议具体的后续调研行动
+### 6.2 每个 Node 的职责
 
-严格按照 DecisionReport JSON schema 输出。
+每个 node 是一个函数，接收 `DebateState`，返回对 state 的更新：
+
+```python
+async def advocate_node(state: DebateState) -> dict:
+    # 1. 从 state 构造上下文（transcript 压缩、active 论点摘要）
+    # 2. 组装 prompt（system prompt + 上下文）
+    # 3. 通过 ModelRouter 获取对应模型，调用 model.with_structured_output(AgentResponse)
+    # 4. 解析响应，更新 ArgumentRegistry
+    # 5. 返回 state 更新：新的 round 数据、更新后的 registry
+    ...
+```
+
+### 6.3 Transcript 压缩策略
+
+```python
+class TranscriptManager:
+    def build_context_for_agent(
+        self,
+        state: DebateState,
+        agent_role: str,
+        current_round: int,
+    ) -> list[dict]:
+        """为指定 Agent 构造合适的上下文"""
+        messages = []
+
+        if current_round <= state.config.transcript_compression_after_round:
+            # 前 N 轮：传完整 transcript
+            for round in state.rounds:
+                messages.extend(self._round_to_messages(round))
+        else:
+            # 之后：历史轮次用 Moderator 的 round_summary 替代
+            for round in state.rounds[:-1]:
+                messages.append({
+                    "role": "user",
+                    "content": f"[第 {round.round_number} 轮摘要] {round.moderator.round_summary}"
+                })
+            # 最近一轮保留完整内容
+            if state.rounds:
+                messages.extend(self._round_to_messages(state.rounds[-1]))
+
+        return messages
+```
+
+### 6.4 ArgumentRegistry
+
+```python
+class ArgumentRegistry:
+    def __init__(self):
+        self._arguments: dict[str, ArgumentRecord] = {}
+
+    def register(self, arg: Argument, round_num: int, agent: str) -> None:
+        """注册新论点"""
+        self._arguments[arg.id] = ArgumentRecord(
+            argument=arg,
+            raised_in_round=round_num,
+            raised_by=agent,
+        )
+
+    def update_status(self, arg_id: str, new_status: ArgumentStatus, reason: str = "") -> None:
+        """更新论点状态"""
+        if arg_id in self._arguments:
+            record = self._arguments[arg_id]
+            record.argument.status = new_status
+            if reason:
+                record.modification_history.append(reason)
+
+    def add_rebuttal(self, arg_id: str, rebuttal: Rebuttal) -> None:
+        """给论点添加反驳记录"""
+        if arg_id in self._arguments:
+            self._arguments[arg_id].rebuttals.append(rebuttal)
+
+    def add_fact_check(self, arg_id: str, check: FactCheck) -> None:
+        """给论点添加校验记录"""
+        if arg_id in self._arguments:
+            self._arguments[arg_id].fact_checks.append(check)
+            if check.verdict == FactCheckVerdict.FLAWED:
+                self.update_status(arg_id, ArgumentStatus.REBUTTED, f"Fact-check: {check.explanation}")
+
+    def get_active_arguments(self, side: str = None) -> list[ArgumentRecord]:
+        """获取所有存活论点，可按阵营过滤"""
+        results = [r for r in self._arguments.values()
+                   if r.argument.status in (ArgumentStatus.ACTIVE, ArgumentStatus.MODIFIED)]
+        if side:
+            results = [r for r in results if r.raised_by == side]
+        return results
+
+    def get_survivor_stats(self) -> dict:
+        """生成论点存活统计"""
+        total = len(self._arguments)
+        active = len([r for r in self._arguments.values()
+                      if r.argument.status in (ArgumentStatus.ACTIVE, ArgumentStatus.MODIFIED)])
+        return {
+            "total_raised": total,
+            "survived": active,
+            "rebutted": len([r for r in self._arguments.values()
+                            if r.argument.status == ArgumentStatus.REBUTTED]),
+            "conceded": len([r for r in self._arguments.values()
+                            if r.argument.status == ArgumentStatus.CONCEDED]),
+        }
+```
+
+### 6.5 收敛判定
+
+```python
+def should_continue(state: DebateState) -> str:
+    """LangGraph 的条件边函数"""
+    # 硬上限
+    if state.current_round >= state.config.max_rounds:
+        return "terminate"
+
+    # 错误状态
+    if state.status == DebateStatus.ERROR:
+        return "terminate"
+
+    # Moderator 判定
+    latest = state.rounds[-1].moderator
+    if not latest.should_continue:
+        return "terminate"
+
+    # 双重校验：即使 Moderator 说继续，如果 convergence_score 持续高位也终止
+    recent_scores = [r.moderator.convergence_score for r in state.rounds[-2:]]
+    if (len(recent_scores) >= 2
+        and all(s >= state.config.convergence_score_target for s in recent_scores)):
+        return "terminate"
+
+    return "continue"
 ```
 
 ---
 
-## 7. 文件结构
+## 7. 多 Provider 路由层
+
+### 7.1 利用 LangChain 的模型抽象
+
+不需要自己写 Provider 接口了——LangChain 已经做了这件事。每个模型都实现了 `BaseChatModel`，调用方式统一。
+
+```python
+from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+
+def create_model(assignment: ModelAssignment) -> BaseChatModel:
+    """根据配置创建对应的 LangChain 模型实例"""
+    providers = {
+        "claude": lambda a: ChatAnthropic(
+            model=a.model,
+            temperature=a.temperature or 0.7,
+            max_tokens=a.max_tokens or 4096,
+        ),
+        "openai": lambda a: ChatOpenAI(
+            model=a.model,
+            temperature=a.temperature or 0.7,
+            max_tokens=a.max_tokens or 4096,
+        ),
+        "gemini": lambda a: ChatGoogleGenerativeAI(
+            model=a.model,
+            temperature=a.temperature or 0.7,
+            max_output_tokens=a.max_tokens or 4096,
+        ),
+    }
+    return providers[a.provider](a)
+```
+
+### 7.2 ModelRouter
+
+```python
+class ModelRouter:
+    def __init__(self, config: DebateEngineConfig):
+        self.config = config
+        self._models: dict[str, BaseChatModel] = {}
+        self._init_models()
+
+    def _init_models(self):
+        if self.config.agents:
+            # 混合调用模式：每个 Agent 单独配置
+            for role in ["advocate", "critic", "fact_checker", "moderator", "report_generator"]:
+                assignment = getattr(self.config.agents, role)
+                self._models[role] = create_model(assignment)
+        else:
+            # 统一模式：所有 Agent 用同一个模型
+            default = ModelAssignment(
+                provider=self.config.default_provider,
+                model=self.config.default_model,
+                temperature=self.config.default_temperature,
+            )
+            for role in ["advocate", "critic", "fact_checker", "moderator", "report_generator"]:
+                self._models[role] = create_model(default)
+
+    def get_model(self, agent_role: str) -> BaseChatModel:
+        return self._models[agent_role]
+
+    def get_structured_model(self, agent_role: str, schema: type[BaseModel]) -> Runnable:
+        """返回带结构化输出的模型，自动处理各家 JSON mode 差异"""
+        model = self.get_model(agent_role)
+        return model.with_structured_output(schema)
+```
+
+### 7.3 Fallback 机制
+
+LangChain 有原生的 fallback 支持：
+
+```python
+from langchain_core.runnables import RunnableWithFallbacks
+
+primary = ChatAnthropic(model="claude-sonnet-4-20250514")
+fallback = ChatOpenAI(model="gpt-4o")
+
+model_with_fallback = primary.with_fallbacks([fallback])
+# 调用 primary 失败时自动切到 fallback
+```
+
+### 7.4 YAML 配置示例
+
+```yaml
+# config.yaml
+
+# 方案 A：统一切换
+default_provider: claude
+default_model: claude-sonnet-4-20250514
+default_temperature: 0.7
+
+# 方案 B：混合调用（取消注释以启用）
+# agents:
+#   advocate:
+#     provider: claude
+#     model: claude-sonnet-4-20250514
+#     temperature: 0.7
+#   critic:
+#     provider: openai
+#     model: gpt-4o
+#     temperature: 0.7
+#   fact_checker:
+#     provider: openai
+#     model: gpt-4o-mini
+#     temperature: 0.3
+#   moderator:
+#     provider: claude
+#     model: claude-haiku-4-5-20251001
+#     temperature: 0.5
+#   report_generator:
+#     provider: claude
+#     model: claude-sonnet-4-20250514
+#     temperature: 0.5
+
+debate:
+  max_rounds: 5
+  convergence_threshold: 2
+  convergence_score_target: 0.8
+  language: auto
+  transcript_compression_after_round: 2
+```
+
+---
+
+## 8. 报告生成逻辑
+
+报告生成是一个独立的 LangGraph node，在辩论终止后执行。
+
+**输入：** 完整 `DebateState`（所有轮次 + ArgumentRegistry 统计）
+
+**Prompt 关键指令：**
+- 基于完整辩论记录生成决策报告
+- executive_summary：3-5 句话概括
+- recommendation.confidence 基于正方存活论点总强度 vs 反方存活论点总强度的比值。势均力敌则 "low"
+- pro/con_arguments 只包含 active 或 modified 状态的论点，按 strength 降序
+- strength 评分规则：基础分 5，每经受一次反驳仍存活 +1，Fact-Checker 评为 valid 额外 +1，评为 flawed 则 -3
+- unresolved_disagreements：标记辩论中始终无法达成共识的问题
+- next_steps：基于 unresolved_disagreements 建议具体后续调研行动，不允许"需要进一步研究"这种空话
+
+**输出：** 通过 `with_structured_output(DecisionReport)` 强制结构化
+
+**渲染：** 将 `DecisionReport` 渲染为 Markdown，使用 Jinja2 模板：
+
+```
+templates/
+├── report.md.j2          # 完整报告模板
+└── argument_card.md.j2   # 单个论点卡片模板（被 report 引用）
+```
+
+---
+
+## 9. 项目文件结构
 
 ```
 debate-engine/
 ├── README.md
-├── package.json
-├── tsconfig.json
-├── .env.example                    # API keys 配置
+├── pyproject.toml                      # 项目元信息 & 依赖（用 poetry 或 uv 管理）
+├── config.yaml                         # 默认配置
+├── .env.example                        # API keys
 │
 ├── src/
-│   ├── index.ts                    # 入口：CLI 或 API server
-│   ├── config.ts                   # 默认配置 & 环境变量
+│   ├── __init__.py
+│   ├── main.py                         # 入口：CLI 启动辩论
 │   │
-│   ├── types/
-│   │   ├── debate.ts               # DebateState, DebateRound 等核心类型
-│   │   ├── agents.ts               # AgentResponse, FactCheckResponse 等
-│   │   └── report.ts               # DecisionReport 类型
+│   ├── schemas/                        # Pydantic models（全局契约）
+│   │   ├── __init__.py
+│   │   ├── debate.py                   # DebateState, DebateRound, DebateConfig
+│   │   ├── agents.py                   # AgentResponse, FactCheckResponse, ModeratorResponse
+│   │   ├── arguments.py                # Argument, Rebuttal, FactCheck, ArgumentRecord
+│   │   ├── report.py                   # DecisionReport, ScoredArgument, Recommendation
+│   │   └── config.py                   # DebateEngineConfig, ModelAssignment, AgentModelConfig
 │   │
-│   ├── orchestrator/
-│   │   ├── engine.ts               # 主编排循环：runDebate()
-│   │   ├── argumentRegistry.ts     # 论点注册 & 状态追踪
-│   │   └── transcriptManager.ts    # 辩论记录管理 & 压缩
+│   ├── graph/                          # LangGraph 编排
+│   │   ├── __init__.py
+│   │   ├── builder.py                  # 构建 StateGraph，定义节点和边
+│   │   ├── nodes/
+│   │   │   ├── __init__.py
+│   │   │   ├── advocate.py             # advocate_node 函数
+│   │   │   ├── critic.py               # critic_node 函数
+│   │   │   ├── fact_checker.py         # fact_checker_node 函数
+│   │   │   ├── moderator.py            # moderator_node 函数
+│   │   │   └── report.py              # report_node 函数
+│   │   └── conditions.py              # should_continue 条件函数
 │   │
-│   ├── agents/
-│   │   ├── base.ts                 # Agent 基类：LLM 调用、重试、JSON 解析
-│   │   ├── advocate.ts             # Advocate Agent 实现
-│   │   ├── critic.ts               # Critic Agent 实现
-│   │   ├── factChecker.ts          # Fact-Checker Agent 实现
-│   │   └── moderator.ts            # Moderator Agent 实现
+│   ├── agents/                         # Agent 核心逻辑（被 nodes 调用）
+│   │   ├── __init__.py
+│   │   ├── base.py                     # Agent 基类：prompt 组装、模型调用、响应处理
+│   │   ├── advocate.py
+│   │   ├── critic.py
+│   │   ├── fact_checker.py
+│   │   └── moderator.py
 │   │
-│   ├── prompts/
-│   │   ├── advocate.prompt.ts      # Advocate 的 system prompt 模板
-│   │   ├── critic.prompt.ts        # Critic 的 system prompt 模板
-│   │   ├── factChecker.prompt.ts   # Fact-Checker 的 system prompt 模板
-│   │   ├── moderator.prompt.ts     # Moderator 的 system prompt 模板
-│   │   └── reportGenerator.prompt.ts  # 报告生成 prompt
+│   ├── prompts/                        # Prompt 模板
+│   │   ├── __init__.py
+│   │   ├── advocate.py                 # Advocate 的 system prompt 构造函数
+│   │   ├── critic.py
+│   │   ├── fact_checker.py
+│   │   ├── moderator.py
+│   │   └── report_generator.py
 │   │
-│   ├── llm/
-│   │   ├── client.ts               # 统一 LLM 客户端（封装 API 调用）
-│   │   └── responseParser.ts       # JSON 响应解析 & 校验
+│   ├── llm/                            # LLM 路由层
+│   │   ├── __init__.py
+│   │   ├── router.py                   # ModelRouter：按 agent role 路由到对应模型
+│   │   ├── factory.py                  # create_model()：根据配置实例化 LangChain 模型
+│   │   └── cost.py                     # 各模型定价表，计算 token 成本
 │   │
-│   └── output/
-│       ├── reportRenderer.ts       # 将 DecisionReport 渲染为 Markdown
-│       └── streamHandler.ts        # 实时辩论过程的流式输出
-│
-├── prompts/                        # （可选）外置 prompt 文件
-│   ├── advocate_system.md
-│   ├── critic_system.md
-│   ├── factchecker_system.md
-│   └── moderator_system.md
+│   ├── core/                           # 核心业务逻辑
+│   │   ├── __init__.py
+│   │   ├── argument_registry.py        # ArgumentRegistry 类
+│   │   └── transcript_manager.py       # TranscriptManager 类
+│   │
+│   ├── output/                         # 输出层
+│   │   ├── __init__.py
+│   │   ├── renderer.py                 # DecisionReport → Markdown 渲染
+│   │   └── stream.py                   # 实时辩论过程的流式输出
+│   │
+│   └── templates/                      # Jinja2 模板
+│       ├── report.md.j2
+│       └── argument_card.md.j2
 │
 ├── examples/
-│   ├── java-to-go-migration.ts     # 示例：Java 迁移 Go
-│   └── build-vs-buy.ts             # 示例：自建 vs 采购
+│   ├── java_to_go.py                   # 示例：Java 迁移 Go
+│   └── build_vs_buy.py                 # 示例：自建 vs 采购
 │
 └── tests/
-    ├── orchestrator.test.ts
-    ├── agents/
-    │   ├── advocate.test.ts
-    │   ├── critic.test.ts
-    │   ├── factChecker.test.ts
-    │   └── moderator.test.ts
-    ├── argumentRegistry.test.ts
-    └── fixtures/                    # 模拟 LLM 响应的测试数据
-        ├── mockAdvocateResponse.json
-        └── mockCriticResponse.json
+    ├── conftest.py                     # pytest fixtures（mock 模型、测试配置）
+    ├── test_graph/
+    │   ├── test_builder.py
+    │   └── test_conditions.py
+    ├── test_agents/
+    │   ├── test_advocate.py
+    │   ├── test_critic.py
+    │   ├── test_fact_checker.py
+    │   └── test_moderator.py
+    ├── test_core/
+    │   ├── test_argument_registry.py
+    │   └── test_transcript_manager.py
+    └── fixtures/
+        ├── mock_advocate_response.json
+        ├── mock_critic_response.json
+        └── sample_debate_state.json
 ```
 
 ---
 
-## 8. 实施步骤（分阶段）
+## 10. 分阶段实施计划
 
-### Phase 1：基础骨架（预计 2-3 天）
+### Phase 1：基础骨架（）
 
-**目标：** 跑通最简单的单轮辩论
+**目标：** 单轮辩论跑通
 
-1. 初始化 TypeScript 项目，配置 tsconfig、eslint、依赖
-2. 定义 `src/types/` 下所有核心类型
-3. 实现 `src/llm/client.ts`：统一的 LLM 调用封装
-   - 支持传入 system prompt + messages
-   - 支持 JSON mode / structured output
-   - 包含重试逻辑和 token 计数
-4. 实现 `src/llm/responseParser.ts`：从 LLM 输出中提取合法 JSON
-5. 实现 `src/agents/base.ts`：Agent 基类
-   - `async execute(input: AgentInput): Promise<AgentResponse>`
-   - 内含 prompt 组装、LLM 调用、响应解析
-6. 实现 4 个 Agent 的最简版本（先硬编码 prompt，不做复杂的历史引用）
-7. 实现 `src/orchestrator/engine.ts`：单轮编排（Advocate → Critic → FactChecker → Moderator）
+1. 初始化 Python 项目（）
+2. 定义 `schemas/` 下所有 Pydantic models
+3. 实现 `llm/factory.py` 和 `llm/router.py`（先只支持一个 provider）
+4. 实现 4 个 Agent 的最简版本（`agents/` 下，硬编码 prompt，用 `with_structured_output` 强制输出格式）
+5. 实现 LangGraph 的 `graph/builder.py`：构建单轮图（Advocate → Critic → FactChecker → Moderator → END，不循环）
+6. 实现 `main.py` 入口
 
-**验证：** 输入一个决策问题，能输出一轮完整的 4 个 Agent 响应
+**验证：** 输入一个决策问题，能跑通一轮，4 个 Agent 各输出一个合法的 Pydantic 对象
 
-### Phase 2：多轮辩论 & 收敛（预计 2-3 天）
+### Phase 2：多 Provider 路由（）
 
-**目标：** 实现真正的多轮动态辩论
+**目标：** 支持统一切换和混合调用
 
-1. 实现 `ArgumentRegistry`：论点注册、状态更新、查询
-2. 实现 `TranscriptManager`：
-   - 完整记录追加
-   - 历史轮次摘要压缩（用 Moderator 的 roundSummary）
-   - 为每个 Agent 构造合适的上下文窗口
-3. 完善 Agent prompts：
-   - Advocate/Critic：加入引用对方论点 ID 并反驳的指令
-   - Moderator：加入收敛判定逻辑
-4. 编排循环：`while (shouldContinue && round <= maxRounds)`
-5. 实现收敛判定逻辑（在 Moderator 和 Orchestrator 双重判定）
+1. 完善 `llm/factory.py`：支持 Claude、OpenAI、Gemini 三个 provider
+2. 实现 YAML 配置加载（`schemas/config.py` + Pydantic Settings）
+3. 实现 fallback 机制（`model.with_fallbacks()`）
+4. 实现 `llm/cost.py`：按 provider 定价计算成本
 
-**验证：** 一个决策问题能自动运行 3-5 轮并在适当时机收敛
+**验证：** 用不同的 YAML 配置跑同一个问题，确认模型切换正常；故意断开一个 provider 的 API key，确认 fallback 生效
 
-### Phase 3：报告生成 & 输出（预计 1-2 天）
+### Phase 3：多轮辩论 & 收敛（）
 
-**目标：** 生成高质量的结构化决策报告
+**目标：** 真正的多轮动态辩论
 
-1. 实现报告生成 prompt 和调用逻辑
-2. 实现 `reportRenderer.ts`：将 JSON 报告渲染为可读的 Markdown
-3. 实现 `streamHandler.ts`：辩论过程的实时输出（供前端/CLI 使用）
-4. 添加辩论统计信息到报告中
+1. 实现 `core/argument_registry.py`：论点注册、状态更新、查询
+2. 实现 `core/transcript_manager.py`：完整记录 + 历史压缩
+3. 完善 Agent prompts：加入引用论点 ID 反驳的指令、让步规则
+4. 在 LangGraph 图中加入条件循环边（`should_continue`）
+5. 实现 `graph/conditions.py` 的收敛判定逻辑
 
-**验证：** 输出的 Markdown 报告包含完整结构且可读性好
+**验证：** 一个决策问题能自动运行 3-5 轮并在适当时机收敛；检查 Critic 的 target_argument_id 是否真的引用了 Advocate 的论点
 
-### Phase 4：健壮性 & 优化（预计 2 天）
+### Phase 4：报告生成 & 输出（）
+
+**目标：** 高质量结构化决策报告
+
+1. 实现 `graph/nodes/report.py`：报告生成 node
+2. 实现 `output/renderer.py`：DecisionReport → Markdown（使用 Jinja2）
+3. 实现 `output/stream.py`：辩论过程的实时流式输出（LangGraph 的 `.astream()` 原生支持）
+4. 添加辩论统计到报告中
+
+**验证：** 输出的 Markdown 报告结构完整、可读性好；流式输出能实时展示每个 Agent 的发言
+
+### Phase 5：健壮性 & 优化（）
 
 **目标：** 生产级可靠性
 
-1. 完善错误处理：Agent 调用失败、JSON 解析失败、超时
-2. Token 消耗优化：
-   - 监控每轮 token 使用量
-   - 动态调整 transcript 压缩策略
-   - 设置总 token 预算上限
-3. 添加配置文件支持（从 `.env` 或 YAML 读取）
-4. 添加日志系统（每轮辩论过程可追溯）
-5. 编写单元测试和集成测试
-
-### Phase 5：交互界面（可选，预计 2-3 天）
-
-**目标：** 提供可视化的辩论过程
-
-选项 A — CLI 界面：
-- 使用 `inquirer` 或 `ora` 做交互式命令行
-- 实时显示每个 Agent 的发言
-- 用颜色区分不同 Agent
-
-选项 B — Web 界面：
-- 简单的 React/Next.js 前端
-- 左侧输入决策问题，右侧实时展示辩论流
-- 最终报告可导出为 PDF/Markdown
+1. 完善错误处理：
+   - 单个 Agent 调用失败：重试 2 次（LangChain 的 `model.with_retry()`），仍失败则用上一轮输出 + 标记
+   - Pydantic 校验失败：自动重试一次并附带更严格的格式指令
+   - 整轮失败：终止辩论，基于已有轮次生成部分报告
+2. Token 消耗监控：通过 LangChain 的 callback 机制追踪每次调用的 token 用量
+3. 日志系统：用 Python logging，每轮辩论过程可追溯
+4. 编写测试：用 mock 模型测试图的执行流程、ArgumentRegistry、TranscriptManager
 
 ---
 
-## 9. 关键技术决策
+## 11. 关键技术决策
 
 | 决策项 | 推荐选择 | 理由 |
 |--------|---------|------|
-| 语言 | TypeScript | 类型安全对复杂数据结构至关重要 |
-| LLM | Claude API (claude-sonnet-4-20250514) | 长上下文、结构化输出好、性价比高 |
-| 框架依赖 | 无框架，纯 TypeScript | 这个项目的核心是编排逻辑，不需要 LangChain 等框架增加复杂度 |
-| JSON 解析 | zod + 手动提取 | 用 zod schema 校验 LLM 输出的 JSON 合法性 |
-| 并发 | 顺序执行 | Agent 间有依赖关系（Critic 依赖 Advocate），不适合并行 |
-| 测试 | vitest | 快、TypeScript 原生支持 |
+| 编排框架 | LangGraph | 原生支持有状态循环图，比手写 while 循环更清晰，自带 checkpoint/streaming |
+| 模型抽象 | LangChain Core 的 BaseChatModel | 多 provider 开箱即用，不用自己封装各家 API 差异 |
+| 结构化输出 | `with_structured_output()` | 自动处理 Claude/OpenAI/Gemini 的 JSON mode 差异，直接返回 Pydantic 对象 |
+| 数据校验 | Pydantic v2 | LangChain 原生支持，性能比 v1 快 5-50 倍 |
+| 不用 LangChain 的 Agent | 是 | LangChain 的 AgentExecutor 是为 tool-calling agent 设计的，和你的"角色扮演辩论"模式不匹配。只用它的模型层 |
+| 不用 LangChain 的 Memory | 是 | LangChain 的 Memory 模块是为聊天历史设计的，不适合你的 transcript 压缩策略。自己写 TranscriptManager 更灵活 |
+| 包管理 | uv 或 poetry | uv 更快，poetry 更成熟，都行 |
+| 异步 | 全量 async | LLM 调用是 IO 密集型，LangGraph 原生支持 async |
 
 ---
 
-## 10. Prompt 工程注意事项
-
-1. **强制 JSON 输出：** 每个 Agent 的 system prompt 末尾附带完整的 JSON schema，并明确要求"只输出 JSON，不要包含任何其他文字"
-
-2. **论点 ID 引用机制：** Critic 反驳时必须引用 `targetArgumentId`，这是实现"动态对抗"而非"各说各话"的关键。Prompt 中需要反复强调这一点
-
-3. **防止角色坍塌：** Advocate 不应该过早让步，Critic 不应该无脑反对。在 prompt 中加入"只有当对方论证确实无懈可击时才承认让步"
-
-4. **Fact-Checker 中立性：** 明确告知"你不偏向任何一方，只评估论证质量"。如果发现两方论证质量差异大，如实报告
-
-5. **Moderator 收敛判断：** 这是最难 prompt 的部分。需要在 prompt 中提供收敛判定的具体规则和示例，避免过早或过晚终止
-
-6. **语言一致性：** 如果用户用中文提问，所有 Agent 的输出都应该是中文（在 system prompt 中指定）
-
----
-
-## 11. 成本估算
+## 12. 成本估算
 
 基于 Claude Sonnet，假设每次 Agent 调用平均 3000 input tokens + 1500 output tokens：
 
-| 项目 | 计算 |
+| 项目 | 数值 |
 |------|------|
 | 每轮 LLM 调用 | 4 次（4 个 Agent） |
 | 平均辩论轮数 | 4 轮 |
-| 总 LLM 调用 | 16 次 + 1 次报告生成 = 17 次 |
-| 总 tokens | ~76,500 tokens（含 input 增长） |
-| 预估单次辩论成本 | 约 $0.30 - $0.50 |
-
-注意：随着轮次增加，input tokens 会增长（因为要传入历史记录）。Transcript 压缩策略可有效控制这一增长。
+| 报告生成 | 1 次 |
+| 总 LLM 调用 | 17 次 |
+| Input tokens（含增长） | ~55,000（因 transcript 压缩，增长可控） |
+| Output tokens | ~25,500 |
+| 预估单次辩论成本（全 Sonnet） | ~$0.30 - $0.50 |
+| 混合调用优化后 | ~$0.15 - $0.25（Fact-Checker + Moderator 用 mini/Haiku） |
 
 ---
 
-## 12. 给 Copilot 的实施提示
+## 13. Prompt 工程注意事项
 
-- 请严格按照 Phase 1 → 5 的顺序实施，每个 Phase 完成后验证再继续
-- `types/` 下的类型定义是全局契约，所有模块都围绕这些类型展开
-- 每个 Agent 的实现模式高度一致（继承 base），区别仅在 prompt 和输入构造
-- Orchestrator 是核心控制器，保持其逻辑清晰简洁，不要在里面塞业务逻辑
-- Prompt 模板建议用 template literal 函数，方便动态注入上下文变量
-- 所有 LLM 输出都要经过 zod schema 校验，不要信任原始输出
+1. **结构化输出优先用 `with_structured_output`** 而不是在 prompt 里附 JSON schema。LangChain 会根据 provider 自动选最佳策略（Claude 用 tool_use、OpenAI 用 json_mode）
+
+2. **论点 ID 引用机制**：在 Critic 的 prompt 中反复强调"你必须在 rebuttals 的 target_argument_id 字段引用 Advocate 的具体论点 ID"，并给出示例。这是辩论质量的关键
+
+3. **防止角色坍塌**：Advocate prompt 中加入"只有当对方论证完全无法反驳时才将论点加入 concessions，不要轻易让步"。Critic 同理
+
+4. **Fact-Checker 中立性**：明确"你不偏向任何一方。如果两方论证质量差异大，如实报告"
+
+5. **Moderator 收敛判断**：在 prompt 中提供具体的评分锚点，比如"如果本轮只有 0-1 个新论点，且 concessions 数量增加，convergence_score 应在 0.7-0.9 之间"
+
+6. **语言一致性**：system prompt 中加入"请使用与用户提问相同的语言输出所有内容"
+
+---
+
+## 14. 未来扩展
+
+以下功能设计为可插拔模块，不耦合到核心辩论逻辑中，后续作为独立项目或插件接入：
+
+### 14.1 Meta-Harness 集成
+
+作为独立项目开发。辩论引擎预留的搜索空间包括：
+- `prompts/` 下所有 prompt 构造函数
+- `config.yaml` 中的参数（temperature、max_rounds、convergence_threshold）
+- `core/transcript_manager.py` 的压缩策略
+- `llm/router.py` 的模型分配
+- LangGraph 图结构本身（节点顺序、条件函数的阈值）
+
+接入方式：Meta-Harness 框架通过文件系统读取辩论引擎的代码和配置，修改后重新运行 eval，不需要辩论引擎做任何代码改动。
+
+### 14.2 评估体系（Eval Harness）
+
+- eval dataset：一批决策问题 + 黄金标准标注
+- 多维度 LLM-as-judge：论点覆盖率、反驳质量、收敛行为、报告可操作性
+- 回归测试管道：prompt 或参数变更后自动跑 eval 对比
+- 接口：独立的 `eval/` 目录，通过 import 辩论引擎的 `main()` 批量运行
+
+### 14.3 三层记忆架构
+
+- **情景记忆（MemPalace 模式）**：每个 Agent 维护独立的记忆宫殿，辩论结束后写 diary entry，下次辩论按需检索。基于 ChromaDB，完全本地
+- **语义记忆（LLM Wiki 模式）**：辩论结束后将报告编译进持久化 Markdown wiki，跨辩论积累领域知识
+- 接入点：在每个 Agent node 的输入构造阶段，增加一个可选的"从记忆加载相关上下文"步骤。通过配置开关控制是否启用
+
+### 14.4 Web UI
+
+- 利用 LangGraph 的 `.astream_events()` 做实时辩论流推送
+- 前端展示每个 Agent 的发言、论点状态流转、收敛曲线
+- 最终报告可导出为 PDF/Markdown
