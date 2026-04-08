@@ -144,7 +144,9 @@ def main():
         if isinstance(report, dict):
             report = DecisionReport(**report)
         markdown = render_report_to_markdown(report, state)
-        output_file = "debate-report.md"
+        import os
+        os.makedirs("reports", exist_ok=True)
+        output_file = "reports/debate-report.md"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(markdown)
         print(f"\n📄 报告已保存至: {output_file}")

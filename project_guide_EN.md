@@ -108,7 +108,8 @@ graph TB
 
 ```bash
 cd debate-engine-py
-cp .env.example .env          # fill in your API Key
+cp .env.example .env          # fill in your API Key 
+                              #If you choose the API not form Claude do NOT forget the config.yaml
 docker-compose run --rm debate "Should we migrate our Java services to Go?"
 ```
 
