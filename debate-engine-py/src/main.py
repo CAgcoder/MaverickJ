@@ -16,6 +16,7 @@ from src.graph.builder import build_debate_graph
 from src.llm.router import ModelRouter
 from src.output.renderer import render_report_to_markdown
 from src.output.stream import (
+    console,
     print_advocate_result,
     print_agent_start,
     print_critic_result,
@@ -89,25 +90,21 @@ async def run_debate(
         if state.current_round_advocate and (
             final_state is None or final_state.current_round_advocate != state.current_round_advocate
         ):
-            print_agent_start("advocate")
             print_advocate_result(state.current_round_advocate)
 
         if state.current_round_critic and (
             final_state is None or final_state.current_round_critic != state.current_round_critic
         ):
-            print_agent_start("critic")
             print_critic_result(state.current_round_critic)
 
         if state.current_round_fact_check and (
             final_state is None or final_state.current_round_fact_check != state.current_round_fact_check
         ):
-            print_agent_start("fact_checker")
             print_fact_check_result(state.current_round_fact_check)
 
         if state.current_round_moderator and (
             final_state is None or final_state.current_round_moderator != state.current_round_moderator
         ):
-            print_agent_start("moderator")
             print_moderator_result(state.current_round_moderator)
 
         final_state = state
