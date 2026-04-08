@@ -1,7 +1,0 @@
-node_modules/
-dist/
-.env
-debate-report-*.md
-debate-state-*.json
-example-*.md
-.DS_Store
