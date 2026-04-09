@@ -78,60 +78,51 @@ This adversarial analysis framework extends well beyond software decisions. Here
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      User Interface Layer                │
-│          CLI interactive input → Live debate stream → Report │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-┌───────────────────────▼─────────────────────────────────┐
-│                  LangGraph Orchestration Graph           │
-│                                                         │
-│  round_setup → advocate → critic → fact_checker         │
-│                                        │                │
-│                              moderator ◄┘               │
-│                                  │                      │
-│                    ┌─────────────┴─────────────┐        │
-│                    │   should_continue(state)?  │        │
-│                    └──────┬──────────┬──────────┘        │
-│               Continue   │          │ Converged / Max rounds │
-│         (back to round_setup)        ▼                   │
-│                                   report → END           │
-│                                                         │
-│  DebateState (Pydantic shared state) flows through graph │
-│  ArgumentRegistry · TranscriptManager embedded in state  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-┌───────────────────────▼─────────────────────────────────┐
-│                      LLM Call Layer                      │
-│   ModelRouter → LangChain BaseChatModel                  │
-│   with_structured_output(PydanticSchema) / retry logic   │
-│   Supports: Claude · OpenAI · Gemini (per-Agent routing) │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    UI["🖥️ User Interface Layer\nCLI interactive input → Live debate stream → Decision report"]
+    GRAPH["📊 LangGraph Orchestration Graph\nDebateState (Pydantic shared state) flows through graph\nArgumentRegistry · TranscriptManager embedded in state"]
+    LLM["🤖 LLM Call Layer\nModelRouter → LangChain BaseChatModel\nwith_structured_output(PydanticSchema) / retry logic\nSupports: Claude · OpenAI · Gemini (per-Agent routing)"]
+
+    UI --> GRAPH
+    GRAPH --> LLM
+
+    subgraph GRAPH_DETAIL["LangGraph Orchestration Graph internals"]
+        direction LR
+        RS[round_setup] --> ADV[advocate]
+        ADV --> CRT[critic]
+        CRT --> FC[fact_checker]
+        FC --> MOD[moderator]
+        MOD --> COND{should_continue?}
+        COND -->|Continue debate| RS
+        COND -->|Converged / Max rounds| RPT[report]
+        RPT --> END([END])
+    end
 ```
 
 **Data flow (single round):**
 
-```
-User question + history
-      │
-      ▼
-Step 1: round_setup  ──→ Increment round, clear temporary fields
-      │
-      ▼
-Step 2: advocate     ──→ Propose/revise pro-side arguments + rebut opponent
-      │
-      ▼
-Step 3: critic       ──→ Rebut pro arguments + raise con arguments
-      │
-      ▼
-Step 4: fact_checker ──→ Verify logic/factual accuracy of both sides
-      │
-      ▼
-Step 5: moderator    ──→ Summarize round + compute convergence + decide whether to continue
-      │
-      ├── should_continue=True  → back to round_setup
-      └── should_continue=False → report → END
+```mermaid
+flowchart TD
+    INPUT(["📥 User question + history"])
+    S1["Step 1: round_setup\nIncrement round, clear temporary fields"]
+    S2["Step 2: advocate\nPropose/revise pro-side arguments + rebut opponent"]
+    S3["Step 3: critic\nRebut pro arguments + raise con arguments"]
+    S4["Step 4: fact_checker\nVerify logic/factual accuracy of both sides"]
+    S5["Step 5: moderator\nSummarize round + compute convergence + decide whether to continue"]
+    COND{should_continue?}
+    REPORT["report"]
+    END([END])
+
+    INPUT --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
+    S5 --> COND
+    COND -->|True| S1
+    COND -->|False| REPORT
+    REPORT --> END
 ```
 
 ---
@@ -267,12 +258,16 @@ class ArgumentRecord(BaseModel):
 
 **Argument status transitions:**
 
-```
-active ──→ modified (partially rebutted, then revised)
-  │
-  ├──→ rebutted (effectively rebutted OR Fact-Checker verdict: flawed → auto-flagged)
-  │
-  └──→ conceded (holder proactively concedes)
+```mermaid
+stateDiagram-v2
+    [*] --> active : argument raised
+    active --> modified : partially rebutted, then revised
+    active --> rebutted : effectively rebutted / Fact-Checker verdict: flawed
+    active --> conceded : holder proactively concedes
+    modified --> rebutted : revised argument still refuted
+    modified --> conceded : revised argument then conceded
+    rebutted --> [*]
+    conceded --> [*]
 ```
 
 **Key methods:**

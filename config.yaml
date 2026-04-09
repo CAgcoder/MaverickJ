@@ -1,7 +1,7 @@
 # 方案 A：统一切换
-default_provider: claude
-default_model: claude-sonnet-4-20250514
-default_temperature: 0.7
+default_provider: Claude
+default_model: claude-haiku-4-5-20251001
+default_temperature: 0.4
 
 # 方案 B：混合调用（取消注释以启用）
 # agents:

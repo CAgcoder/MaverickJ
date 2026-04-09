@@ -107,6 +107,7 @@ graph TB
 # 1. 复制并配置 API Key
 cp .env.example .env
 # 编辑 .env，填入至少一个 Provider 的 API Key
+#如果你选择了非Claude API 那么别忘了修改config.yaml
 
 # 2. 构建镜像
 docker compose build
