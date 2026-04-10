@@ -1,4 +1,4 @@
-"""测试 TranscriptManager"""
+"""Tests for TranscriptManager."""
 from datetime import datetime
 
 import pytest
@@ -24,19 +24,19 @@ class TestTranscriptManager:
         assert result == ""
 
     def test_full_transcript_within_threshold(self, sample_debate_state):
-        """前 N 轮应当传完整 transcript"""
+        """First N rounds should transmit a full transcript."""
         result = self.manager.build_context_for_agent(
             sample_debate_state, "advocate", 1
         )
-        assert "第 1 轮" in result
+        assert "Round 1" in result
         assert "ADV-R1-01" in result
 
     def test_compressed_transcript_after_threshold(self, sample_debate_state):
-        """超过 N 轮应当压缩历史"""
-        # 把 current_round 设到 3（超过 threshold 2）
+        """Beyond N rounds the history should be compressed."""
+        # Set current_round to 3 (exceeds threshold 2)
         result = self.manager.build_context_for_agent(
             sample_debate_state, "advocate", 3
         )
-        # 应该使用摘要而非完整内容
-        # 由于只有一轮，最近一轮保留完整
-        assert "第 1 轮" in result
+        # Should use summaries instead of full content
+        # Since there is only one round, the most recent round is kept in full
+        assert "Round 1" in result

@@ -12,17 +12,17 @@ class ArgumentStatus(str, Enum):
 
 
 class Argument(BaseModel):
-    id: str = Field(description="论点 ID，格式如 ADV-R1-01 或 CRT-R1-01")
-    claim: str = Field(description="论点主张")
-    reasoning: str = Field(description="推理过程")
-    evidence: Optional[str] = Field(default=None, description="支撑证据")
-    status: ArgumentStatus = Field(default=ArgumentStatus.ACTIVE, description="论点状态")
+    id: str = Field(description="Argument ID, e.g. ADV-R1-01 or CRT-R1-01")
+    claim: str = Field(description="Argument claim")
+    reasoning: str = Field(description="Reasoning process")
+    evidence: Optional[str] = Field(default=None, description="Supporting evidence")
+    status: ArgumentStatus = Field(default=ArgumentStatus.ACTIVE, description="Argument status")
 
 
 class Rebuttal(BaseModel):
-    target_argument_id: str = Field(description="反驳目标论点 ID")
-    counter_claim: str = Field(description="反驳主张")
-    reasoning: str = Field(description="反驳推理")
+    target_argument_id: str = Field(description="ID of the argument being rebutted")
+    counter_claim: str = Field(description="Counter-claim")
+    reasoning: str = Field(description="Rebuttal reasoning")
 
 
 class FactCheckVerdict(str, Enum):
@@ -33,15 +33,15 @@ class FactCheckVerdict(str, Enum):
 
 
 class FactCheck(BaseModel):
-    target_argument_id: str = Field(description="校验目标论点 ID")
-    verdict: FactCheckVerdict = Field(description="校验判定")
-    explanation: str = Field(description="校验说明")
-    correction: Optional[str] = Field(default=None, description="修正建议")
-    fallacy_type: Optional[str] = Field(default=None, description="谬误类型")
+    target_argument_id: str = Field(description="ID of the argument being fact-checked")
+    verdict: FactCheckVerdict = Field(description="Fact-check verdict")
+    explanation: str = Field(description="Explanation of the verdict")
+    correction: Optional[str] = Field(default=None, description="Suggested correction")
+    fallacy_type: Optional[str] = Field(default=None, description="Type of logical fallacy, if any")
 
 
 class ArgumentRecord(BaseModel):
-    """ArgumentRegistry 中存储的完整论点生命周期"""
+    """Complete argument lifecycle record stored in the ArgumentRegistry."""
     argument: Argument
     raised_in_round: int
     raised_by: str  # "advocate" | "critic"

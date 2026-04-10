@@ -9,22 +9,22 @@ logger = logging.getLogger(__name__)
 
 
 async def advocate_node(state: DebateState, router: ModelRouter) -> dict:
-    """Advocate node: 正方论证"""
-    logger.info(f"=== 第 {state.current_round} 轮 - Advocate 发言 ===")
+    """Advocate node: pro-side argumentation."""
+    logger.info(f"=== Round {state.current_round} - Advocate turn ===")
 
     agent = AdvocateAgent(router)
     response, usage = await agent.run(state)
 
-    # 更新 ArgumentRegistry
+    # Update ArgumentRegistry
     registry = ArgumentRegistry(state.argument_registry)
     for arg in response.arguments:
         registry.register(arg, state.current_round, "advocate")
     for rebuttal in response.rebuttals:
         registry.add_rebuttal(rebuttal.target_argument_id, rebuttal)
 
-    # 处理让步
+    # Handle concessions
     for concession in response.concessions:
-        # 找到被让步的论点（如果 concession 包含 ID）
+        # Find the conceded argument (if concession contains an ID)
         for arg_id, record in registry.to_dict().items():
             if record.raised_by == "advocate" and concession in record.argument.claim:
                 from maverickj.schemas.arguments import ArgumentStatus

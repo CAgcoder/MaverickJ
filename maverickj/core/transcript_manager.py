@@ -2,7 +2,7 @@ from maverickj.schemas.debate import DebateState, DebateRound
 
 
 class TranscriptManager:
-    """管理辩论 transcript 的压缩与构造"""
+    """Manages compression and construction of the debate transcript."""
 
     def build_context_for_agent(
         self,
@@ -10,18 +10,18 @@ class TranscriptManager:
         agent_role: str,
         current_round: int,
     ) -> str:
-        """为指定 Agent 构造合适的上下文"""
+        """Build appropriate context for the specified agent."""
         if current_round <= state.config.transcript_compression_after_round:
-            # 前 N 轮：传完整 transcript
+            # First N rounds: pass the full transcript
             return self._full_transcript(state.rounds)
         else:
-            # 之后：历史轮次用 Moderator 的 round_summary 替代
+            # After that: replace older rounds with moderator summaries
             parts = []
             for r in state.rounds[:-1]:
                 parts.append(
-                    f"[第 {r.round_number} 轮摘要] {r.moderator.round_summary}"
+                    f"[Round {r.round_number} Summary] {r.moderator.round_summary}"
                 )
-            # 最近一轮保留完整内容
+            # Keep the most recent round in full
             if state.rounds:
                 parts.append(self._format_round_full(state.rounds[-1]))
             return "\n\n".join(parts)
@@ -30,46 +30,46 @@ class TranscriptManager:
         return "\n\n".join(self._format_round_full(r) for r in rounds)
 
     def _format_round_full(self, r: DebateRound) -> str:
-        parts = [f"=== 第 {r.round_number} 轮 ==="]
+        parts = [f"=== Round {r.round_number} ==="]
 
         # Advocate
-        parts.append("【正方论证】")
+        parts.append("[Advocate's Arguments]")
         for a in r.advocate.arguments:
             parts.append(f"- [{a.id}] {a.claim} ({a.status.value})")
-            parts.append(f"  推理: {a.reasoning}")
+            parts.append(f"  Reasoning: {a.reasoning}")
             if a.evidence:
-                parts.append(f"  证据: {a.evidence}")
+                parts.append(f"  Evidence: {a.evidence}")
         if r.advocate.rebuttals:
-            parts.append("反驳: " + "; ".join(
-                f"针对{rb.target_argument_id}: {rb.counter_claim}"
+            parts.append("Rebuttals: " + "; ".join(
+                f"Against {rb.target_argument_id}: {rb.counter_claim}"
                 for rb in r.advocate.rebuttals
             ))
         if r.advocate.concessions:
-            parts.append("让步: " + "; ".join(r.advocate.concessions))
+            parts.append("Concessions: " + "; ".join(r.advocate.concessions))
 
         # Critic
-        parts.append("【反方论证】")
+        parts.append("[Critic's Arguments]")
         for a in r.critic.arguments:
             parts.append(f"- [{a.id}] {a.claim} ({a.status.value})")
-            parts.append(f"  推理: {a.reasoning}")
+            parts.append(f"  Reasoning: {a.reasoning}")
             if a.evidence:
-                parts.append(f"  证据: {a.evidence}")
+                parts.append(f"  Evidence: {a.evidence}")
         if r.critic.rebuttals:
-            parts.append("反驳: " + "; ".join(
-                f"针对{rb.target_argument_id}: {rb.counter_claim}"
+            parts.append("Rebuttals: " + "; ".join(
+                f"Against {rb.target_argument_id}: {rb.counter_claim}"
                 for rb in r.critic.rebuttals
             ))
         if r.critic.concessions:
-            parts.append("让步: " + "; ".join(r.critic.concessions))
+            parts.append("Concessions: " + "; ".join(r.critic.concessions))
 
         # Fact Check
-        parts.append("【事实校验】")
+        parts.append("[Fact Check]")
         for c in r.fact_check.checks:
             parts.append(f"- {c.target_argument_id}: {c.verdict.value} - {c.explanation}")
-        parts.append(f"总体评估: {r.fact_check.overall_assessment}")
+        parts.append(f"Overall Assessment: {r.fact_check.overall_assessment}")
 
         # Moderator
-        parts.append(f"【主持人总结】{r.moderator.round_summary}")
-        parts.append(f"收敛分数: {r.moderator.convergence_score}")
+        parts.append(f"[Moderator Summary] {r.moderator.round_summary}")
+        parts.append(f"Convergence Score: {r.moderator.convergence_score}")
 
         return "\n".join(parts)

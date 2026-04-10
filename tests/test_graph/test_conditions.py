@@ -1,4 +1,4 @@
-"""测试收敛条件"""
+"""Tests for convergence conditions."""
 from datetime import datetime
 
 import pytest

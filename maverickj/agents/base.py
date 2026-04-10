@@ -12,7 +12,7 @@ MAX_RETRIES = 2
 
 
 class BaseAgent:
-    """Agent 基类：负责 prompt 组装、模型调用、响应处理（含重试）"""
+    """Base agent class: handles prompt assembly, LLM invocation, and response parsing (with retry)."""
 
     role: str = ""
 
@@ -26,9 +26,9 @@ class BaseAgent:
         output_schema: type[BaseModel],
     ) -> tuple[Any, dict]:
         """
-        调用 LLM 并返回结构化响应（含自动重试）。
-        - LLM 调用失败：重试最多 MAX_RETRIES 次
-        - Pydantic 校验失败：重试一次并附带更严格的格式指令
+        Invoke the LLM and return a structured response (with automatic retry).
+        - LLM call failure: retry up to MAX_RETRIES times
+        - Pydantic validation failure: retry once with a stricter format instruction
         Returns: (parsed_response, usage_metadata)
         """
         model = self.router.get_structured_model(self.role, output_schema)
@@ -40,9 +40,9 @@ class BaseAgent:
         last_error = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                logger.info(f"[{self.role}] 调用 LLM (attempt {attempt}/{MAX_RETRIES})...")
+                logger.info(f"[{self.role}] Invoking LLM (attempt {attempt}/{MAX_RETRIES})...")
                 response = await model.ainvoke(messages)
-                logger.info(f"[{self.role}] LLM 响应完成")
+                logger.info(f"[{self.role}] LLM response received")
 
                 # Extract usage metadata if available
                 usage = self._extract_usage(response)
@@ -50,28 +50,28 @@ class BaseAgent:
 
             except ValidationError as e:
                 last_error = e
-                logger.warning(f"[{self.role}] Pydantic 校验失败 (attempt {attempt}): {e}")
+                logger.warning(f"[{self.role}] Pydantic validation failed (attempt {attempt}): {e}")
                 # Append stricter format instruction for retry
                 messages = [
                     SystemMessage(content=system_prompt),
                     HumanMessage(
                         content=user_message
-                        + f"\n\n⚠️ 上次输出格式有误，请严格按照 schema 输出。错误: {e}"
+                        + f"\n\n⚠️ Previous output format was invalid. Please strictly follow the schema. Error: {e}"
                     ),
                 ]
             except Exception as e:
                 last_error = e
-                logger.warning(f"[{self.role}] LLM 调用失败 (attempt {attempt}): {e}")
+                logger.warning(f"[{self.role}] LLM call failed (attempt {attempt}): {e}")
                 if attempt == MAX_RETRIES:
                     break
 
         raise RuntimeError(
-            f"[{self.role}] 调用失败，已重试 {MAX_RETRIES} 次。最后错误: {last_error}"
+            f"[{self.role}] Failed after {MAX_RETRIES} retries. Last error: {last_error}"
         )
 
     @staticmethod
     def _extract_usage(response: Any) -> dict:
-        """从 LLM 响应中提取 token 使用量"""
+        """Extract token usage from LLM response."""
         usage = {}
         if hasattr(response, "response_metadata"):
             metadata = response.response_metadata

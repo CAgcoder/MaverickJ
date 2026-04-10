@@ -7,7 +7,7 @@ from maverickj.schemas.debate import DebateConfig
 
 class ModelAssignment(BaseModel):
     provider: str = Field(description="claude | openai | gemini")
-    model: str = Field(description="模型名称")
+    model: str = Field(description="Model name")
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     fallback: Optional["ModelAssignment"] = None
@@ -22,7 +22,7 @@ class AgentModelConfig(BaseModel):
 
 
 class DebateEngineConfig(BaseModel):
-    """顶层配置，从 YAML 加载"""
+    """Top-level config, loaded from YAML."""
     default_provider: str = "claude"
     default_model: str = "claude-sonnet-4-20250514"
     default_temperature: float = 0.7

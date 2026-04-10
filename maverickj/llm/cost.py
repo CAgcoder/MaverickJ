@@ -1,4 +1,4 @@
-# 各模型定价表（每 1M tokens，单位 USD）
+# Model pricing table (per 1M tokens, USD)
 MODEL_PRICING: dict[str, dict[str, float]] = {
     # Anthropic
     "claude-sonnet-4-20250514": {"input": 3.0, "output": 15.0},
@@ -16,7 +16,7 @@ MODEL_PRICING: dict[str, dict[str, float]] = {
 
 
 def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """计算单次 LLM 调用成本（USD）"""
+    """Calculate the cost of a single LLM call (USD)."""
     pricing = MODEL_PRICING.get(model)
     if pricing is None:
         return 0.0

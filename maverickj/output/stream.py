@@ -1,4 +1,4 @@
-"""实时辩论过程的控制台输出 — rich 增强版"""
+"""Real-time debate console output — Rich-enhanced."""
 from typing import Optional
 
 from rich.console import Console
@@ -9,24 +9,24 @@ from maverickj.schemas.agents import AgentResponse, FactCheckResponse, Moderator
 
 console = Console()
 
-# 角色配色
+# Agent role styles
 AGENT_STYLES = {
-    "advocate": {"color": "green", "icon": "🟢", "label": "正方论证者"},
-    "critic": {"color": "red", "icon": "🔴", "label": "反方批评者"},
-    "fact_checker": {"color": "blue", "icon": "🔍", "label": "事实校验者"},
-    "moderator": {"color": "yellow", "icon": "⚖️ ", "label": "主持人"},
+    "advocate": {"color": "green", "icon": "🟢", "label": "Advocate"},
+    "critic": {"color": "red", "icon": "🔴", "label": "Critic"},
+    "fact_checker": {"color": "blue", "icon": "🔍", "label": "Fact-Checker"},
+    "moderator": {"color": "yellow", "icon": "⚖️ ", "label": "Moderator"},
 }
 
 
 def print_debate_start(question: str) -> None:
     console.print()
-    console.print(Rule("[bold cyan]🎯 多 Agent 辩论式决策引擎[/bold cyan]", style="cyan"))
-    console.print(f"\n[bold]📋 决策问题:[/bold] {question}\n")
+    console.print(Rule("[bold cyan]🎯 Multi-Agent Debate Decision Engine[/bold cyan]", style="cyan"))
+    console.print(f"\n[bold]📋 Decision Question:[/bold] {question}\n")
 
 
 def print_round_start(round_number: int) -> None:
     console.print()
-    console.print(Rule(f"[bold]📍 第 {round_number} 轮辩论[/bold]", style="dim"))
+    console.print(Rule(f"[bold]📍 Round {round_number}[/bold]", style="dim"))
 
 
 def print_agent_start(agent: str) -> None:
@@ -34,41 +34,41 @@ def print_agent_start(agent: str) -> None:
     icon = style.get("icon", "")
     label = style.get("label", agent)
     color = style.get("color", "white")
-    console.print(f"\n  [{color}]{icon} {label} 思考中...[/{color}]")
+    console.print(f"\n  [{color}]{icon} {label} thinking...[/{color}]")
 
 
 def _format_agent_result(result: AgentResponse, role: str) -> str:
-    """格式化 Advocate/Critic 的完整输出"""
+    """Format the full output of an Advocate or Critic response."""
     lines = []
 
-    # 论点
+    # Arguments
     for arg in result.arguments:
         status_icon = "✅" if arg.status.value == "active" else "🔄"
         lines.append(f"{status_icon} [bold][{arg.id}] {arg.claim}[/bold]")
-        lines.append(f"   [dim]推理:[/dim] {arg.reasoning}")
+        lines.append(f"   [dim]Reasoning:[/dim] {arg.reasoning}")
         if arg.evidence:
-            lines.append(f"   [dim]证据:[/dim] {arg.evidence}")
+            lines.append(f"   [dim]Evidence:[/dim] {arg.evidence}")
         lines.append("")
 
-    # 反驳
+    # Rebuttals
     if result.rebuttals:
-        lines.append("[bold]反驳:[/bold]")
+        lines.append("[bold]Rebuttals:[/bold]")
         for r in result.rebuttals:
-            lines.append(f"  ↳ 针对 [bold]{r.target_argument_id}[/bold]: {r.counter_claim}")
-            lines.append(f"    [dim]推理:[/dim] {r.reasoning}")
+            lines.append(f"  ↳ Against [bold]{r.target_argument_id}[/bold]: {r.counter_claim}")
+            lines.append(f"    [dim]Reasoning:[/dim] {r.reasoning}")
         lines.append("")
 
-    # 让步
+    # Concessions
     if result.concessions:
-        lines.append("[bold]让步:[/bold]")
+        lines.append("[bold]Concessions:[/bold]")
         for c in result.concessions:
             lines.append(f"  🤝 {c}")
         lines.append("")
 
-    # 信心变化
+    # Confidence shift
     shift = result.confidence_shift
     shift_color = "green" if shift > 0 else "red" if shift < 0 else "dim"
-    lines.append(f"[{shift_color}]信心变化: {shift:+.2f}[/{shift_color}]")
+    lines.append(f"[{shift_color}]Confidence Shift: {shift:+.2f}[/{shift_color}]")
 
     return "\n".join(lines)
 
@@ -77,7 +77,7 @@ def print_advocate_result(result: AgentResponse) -> None:
     content = _format_agent_result(result, "advocate")
     console.print(Panel(
         content,
-        title="🟢 正方论证者",
+        title="🟢 Advocate",
         border_style="green",
         padding=(1, 2),
     ))
@@ -87,7 +87,7 @@ def print_critic_result(result: AgentResponse) -> None:
     content = _format_agent_result(result, "critic")
     console.print(Panel(
         content,
-        title="🔴 反方批评者",
+        title="🔴 Critic",
         border_style="red",
         padding=(1, 2),
     ))
@@ -107,16 +107,16 @@ def print_fact_check_result(result: FactCheckResponse) -> None:
         lines.append(f"{icon} [bold][{check.target_argument_id}][/bold] [{color}]{check.verdict.value}[/{color}]")
         lines.append(f"   {check.explanation}")
         if check.correction:
-            lines.append(f"   [yellow]修正建议:[/yellow] {check.correction}")
+            lines.append(f"   [yellow]Correction:[/yellow] {check.correction}")
         if check.fallacy_type:
-            lines.append(f"   [red]谬误类型:[/red] {check.fallacy_type}")
+            lines.append(f"   [red]Fallacy Type:[/red] {check.fallacy_type}")
         lines.append("")
 
-    lines.append(f"[bold]整体评估:[/bold] {result.overall_assessment}")
+    lines.append(f"[bold]Overall Assessment:[/bold] {result.overall_assessment}")
 
     console.print(Panel(
         "\n".join(lines),
-        title="🔍 事实校验者",
+        title="🔍 Fact-Checker",
         border_style="blue",
         padding=(1, 2),
     ))
@@ -125,36 +125,36 @@ def print_fact_check_result(result: FactCheckResponse) -> None:
 def print_moderator_result(result: ModeratorResponse) -> None:
     lines = []
 
-    # 轮次总结
-    lines.append(f"[bold]本轮总结:[/bold]\n{result.round_summary}")
+    # Round summary
+    lines.append(f"[bold]Round Summary:[/bold]\n{result.round_summary}")
     lines.append("")
 
-    # 关键分歧
+    # Key divergences
     if result.key_divergences:
-        lines.append("[bold]关键分歧:[/bold]")
+        lines.append("[bold]Key Divergences:[/bold]")
         for d in result.key_divergences:
             lines.append(f"  • {d}")
         lines.append("")
 
-    # 收敛分数 — 可视化进度条
+    # Convergence score visualised as a progress bar
     score = result.convergence_score
     bar_len = 20
     filled = int(score * bar_len)
     bar = "█" * filled + "░" * (bar_len - filled)
     score_color = "green" if score >= 0.7 else "yellow" if score >= 0.4 else "red"
-    lines.append(f"[bold]收敛分数:[/bold] [{score_color}]{bar} {score:.0%}[/{score_color}]")
+    lines.append(f"[bold]Convergence Score:[/bold] [{score_color}]{bar} {score:.0%}[/{score_color}]")
 
-    # 是否继续
-    continue_text = "[green]继续辩论[/green]" if result.should_continue else "[red]终止辩论[/red]"
-    lines.append(f"[bold]裁决:[/bold] {continue_text}")
+    # Continue or terminate
+    continue_text = "[green]Continue[/green]" if result.should_continue else "[red]Terminate[/red]"
+    lines.append(f"[bold]Ruling:[/bold] {continue_text}")
 
-    # 下轮引导
+    # Next round guidance
     if result.guidance_for_next_round:
-        lines.append(f"\n[bold]下轮焦点:[/bold]\n{result.guidance_for_next_round}")
+        lines.append(f"\n[bold]Next Round Focus:[/bold]\n{result.guidance_for_next_round}")
 
     console.print(Panel(
         "\n".join(lines),
-        title="⚖️  主持人",
+        title="⚖️  Moderator",
         border_style="yellow",
         padding=(1, 2),
     ))
@@ -162,15 +162,15 @@ def print_moderator_result(result: ModeratorResponse) -> None:
 
 def print_debate_complete(status: str, reason: Optional[str] = None) -> None:
     status_labels = {
-        "converged": "[green]✅ 辩论收敛[/green]",
-        "max_rounds": "[yellow]⏱️  达到最大轮数[/yellow]",
-        "error": "[red]❌ 辩论出错[/red]",
+        "converged": "[green]✅ Converged[/green]",
+        "max_rounds": "[yellow]⏱️  Max Rounds Reached[/yellow]",
+        "error": "[red]❌ Error[/red]",
     }
     label = status_labels.get(status, status)
 
-    lines = [f"[bold]辩论结束:[/bold] {label}"]
+    lines = [f"[bold]Debate Complete:[/bold] {label}"]
     if reason:
-        lines.append(f"[dim]原因: {reason}[/dim]")
+        lines.append(f"[dim]Reason: {reason}[/dim]")
 
     console.print()
     console.print(Rule(style="cyan"))

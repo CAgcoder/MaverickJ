@@ -1,4 +1,4 @@
-"""测试 ArgumentRegistry"""
+"""Tests for ArgumentRegistry."""
 import pytest
 
 from maverickj.core.argument_registry import ArgumentRegistry
@@ -18,8 +18,8 @@ class TestArgumentRegistry:
     def test_register_argument(self):
         arg = Argument(
             id="ADV-R1-01",
-            claim="Go 部署成本低",
-            reasoning="内存占用小",
+            claim="Go deployment cost is low",
+            reasoning="Small memory footprint",
             status=ArgumentStatus.ACTIVE,
         )
         self.registry.register(arg, round_num=1, agent="advocate")
@@ -31,18 +31,18 @@ class TestArgumentRegistry:
     def test_update_status(self):
         arg = Argument(
             id="ADV-R1-01",
-            claim="Go 部署成本低",
-            reasoning="内存占用小",
+            claim="Go deployment cost is low",
+            reasoning="Small memory footprint",
         )
         self.registry.register(arg, 1, "advocate")
-        self.registry.update_status("ADV-R1-01", ArgumentStatus.REBUTTED, "被反驳")
+        self.registry.update_status("ADV-R1-01", ArgumentStatus.REBUTTED, "Rebutted")
 
         active = self.registry.get_active_arguments()
         assert len(active) == 0
 
         record = self.registry.to_dict()["ADV-R1-01"]
         assert record.argument.status == ArgumentStatus.REBUTTED
-        assert "被反驳" in record.modification_history
+        assert "Rebutted" in record.modification_history
 
     def test_add_rebuttal(self):
         arg = Argument(id="ADV-R1-01", claim="test", reasoning="test")
@@ -50,8 +50,8 @@ class TestArgumentRegistry:
 
         rebuttal = Rebuttal(
             target_argument_id="ADV-R1-01",
-            counter_claim="不对",
-            reasoning="因为...",
+            counter_claim="Incorrect",
+            reasoning="Because...",
         )
         self.registry.add_rebuttal("ADV-R1-01", rebuttal)
 
@@ -65,7 +65,7 @@ class TestArgumentRegistry:
         check = FactCheck(
             target_argument_id="ADV-R1-01",
             verdict=FactCheckVerdict.FLAWED,
-            explanation="逻辑谬误",
+            explanation="Logical fallacy",
         )
         self.registry.add_fact_check("ADV-R1-01", check)
 
@@ -80,7 +80,7 @@ class TestArgumentRegistry:
         check = FactCheck(
             target_argument_id="ADV-R1-01",
             verdict=FactCheckVerdict.VALID,
-            explanation="逻辑正确",
+            explanation="Logically sound",
         )
         self.registry.add_fact_check("ADV-R1-01", check)
 
@@ -88,8 +88,8 @@ class TestArgumentRegistry:
         assert record.argument.status == ArgumentStatus.ACTIVE
 
     def test_filter_by_side(self):
-        arg1 = Argument(id="ADV-R1-01", claim="正方论点", reasoning="test")
-        arg2 = Argument(id="CRT-R1-01", claim="反方论点", reasoning="test")
+        arg1 = Argument(id="ADV-R1-01", claim="Pro argument", reasoning="test")
+        arg2 = Argument(id="CRT-R1-01", claim="Con argument", reasoning="test")
         self.registry.register(arg1, 1, "advocate")
         self.registry.register(arg2, 1, "critic")
 

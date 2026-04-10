@@ -35,15 +35,15 @@ def sample_advocate_response():
         arguments=[
             Argument(
                 id="ADV-R1-01",
-                claim="Go 语言编译后二进制体积小，部署成本显著降低",
-                reasoning="相比 JVM 约 200-500MB 的运行时内存，Go 服务通常只需 20-50MB",
-                evidence="多家公司迁移后报告容器资源降低 60-80%",
+                claim="Go binaries are small; deployment costs drop significantly",
+                reasoning="Compared to the ~200-500 MB JVM runtime, a Go service typically needs only 20-50 MB",
+                evidence="Multiple companies report 60-80% reduction in container resources after migration",
                 status=ArgumentStatus.ACTIVE,
             ),
             Argument(
                 id="ADV-R1-02",
-                claim="Go 冷启动速度远超 Java",
-                reasoning="Go 编译为原生二进制，启动时间在毫秒级",
+                claim="Go cold-start time far outperforms Java",
+                reasoning="Go compiles to native binary; startup time is in milliseconds",
                 status=ArgumentStatus.ACTIVE,
             ),
         ],
@@ -60,16 +60,16 @@ def sample_critic_response():
         arguments=[
             Argument(
                 id="CRT-R1-01",
-                claim="迁移成本极高，需要重写大量业务代码",
-                reasoning="3 年积累的 Java 代码无法自动转换为 Go",
+                claim="Migration cost is extremely high; a large codebase must be rewritten",
+                reasoning="Three years of Java code cannot be automatically converted to Go",
                 status=ArgumentStatus.ACTIVE,
             ),
         ],
         rebuttals=[
             Rebuttal(
                 target_argument_id="ADV-R1-01",
-                counter_claim="部署成本降低被迁移期间的双系统维护成本抵消",
-                reasoning="迁移期间需要同时维护 Java 和 Go 两套系统",
+                counter_claim="Deployment-cost savings are offset by dual-system maintenance during migration",
+                reasoning="During migration both the Java and Go systems must be maintained simultaneously",
             ),
         ],
         concessions=[],
@@ -84,26 +84,26 @@ def sample_fact_check_response():
             FactCheck(
                 target_argument_id="ADV-R1-01",
                 verdict=FactCheckVerdict.VALID,
-                explanation="Go 的内存占用优势有大量实际案例支撑",
+                explanation="Go's memory-footprint advantage is well-supported by real-world case studies",
             ),
             FactCheck(
                 target_argument_id="CRT-R1-01",
                 verdict=FactCheckVerdict.VALID,
-                explanation="大规模代码迁移成本确实是已知风险",
+                explanation="Large-scale code migration costs are a well-known risk",
             ),
         ],
-        overall_assessment="双方论点整体逻辑自洽",
+        overall_assessment="Both sides' arguments are internally consistent",
     )
 
 
 @pytest.fixture
 def sample_moderator_response():
     return ModeratorResponse(
-        round_summary="第一轮正方聚焦性能优势，反方聚焦迁移成本",
-        key_divergences=["迁移成本是否值得性能收益", "团队转型能力"],
+        round_summary="Round 1: Advocate focused on performance gains; Critic focused on migration costs",
+        key_divergences=["Whether migration costs justify the performance gains", "Team's capacity to transition"],
         convergence_score=0.3,
         should_continue=True,
-        guidance_for_next_round="请聚焦讨论迁移的具体成本估算",
+        guidance_for_next_round="Please focus on concrete cost estimates for the migration",
     )
 
 
@@ -127,8 +127,8 @@ def sample_debate_round(
 def sample_debate_state(debate_config, sample_debate_round):
     return DebateState(
         id="test-debate-001",
-        question="我们应该将 Java 后端迁移到 Go 吗？",
-        context="50 人团队，Spring Boot 3 年",
+        question="Should we migrate our Java backend to Go?",
+        context="50-person team, 3 years on Spring Boot",
         config=debate_config,
         rounds=[sample_debate_round],
         argument_registry={},

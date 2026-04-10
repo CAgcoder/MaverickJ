@@ -1,5 +1,5 @@
 """
-多 Agent 辩论式决策引擎 — 主入口
+Multi-Agent Debate Decision Engine — main entry point.
 """
 import asyncio
 import logging
@@ -37,7 +37,7 @@ _SENTINEL = object()  # marks "use default Rich output"
 
 
 def load_config(config_path: str = "config.yaml") -> DebateEngineConfig:
-    """从 YAML 加载配置"""
+    """Load configuration from YAML."""
     path = Path(config_path)
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
@@ -52,23 +52,23 @@ async def run_debate(
     context: Optional[str] = None,
     on_event: Optional[EventCallback] = _SENTINEL,  # type: ignore[assignment]
 ) -> DebateState:
-    """运行一场完整的辩论。
+    """Run a complete debate.
 
     Args:
-        question: 决策问题
-        config: 引擎配置（默认从 config.yaml 加载）
-        context: 可选背景信息
-        on_event: 事件回调。
-            - 缺省 / 传 _SENTINEL → 使用 Rich 终端输出（默认行为，向后兼容）
-            - 传 None             → 静默模式，不产生任何输出
-            - 传自定义 callable   → 接收 DebateEvent，不再触发 Rich 输出
+        question: The decision question.
+        config: Engine config (defaults to loading from config.yaml).
+        context: Optional background information.
+        on_event: Event callback.
+            - Omitted / _SENTINEL → use Rich terminal output (default, backwards-compatible)
+            - None              → silent mode, no output
+            - custom callable   → receives DebateEvent, suppresses Rich output
     """
     use_rich = on_event is _SENTINEL  # type: ignore[comparison-overlap]
 
     if config is None:
         config = load_config()
 
-    # 初始化状态
+    # Initialise state
     initial_state = DebateState(
         id=str(uuid.uuid4()),
         question=question,
@@ -81,15 +81,15 @@ async def run_debate(
         metadata=DebateMetadata(started_at=datetime.now()),
     )
 
-    # 创建模型路由器
+    # Create model router
     router = ModelRouter(config)
 
-    # 构建 LangGraph 图
+    # Build LangGraph
     app = build_debate_graph(router)
 
     def _emit(event_type: DebateEventType, round_num: int, data=None) -> None:
         if use_rich:
-            return  # Rich 输出由下方各 if 块直接调用
+            return  # Rich output is handled directly by the if-blocks below
         if on_event is not None:
             on_event(DebateEvent(type=event_type, round_number=round_num, data=data))
 
@@ -98,14 +98,14 @@ async def run_debate(
     elif on_event is not None:
         on_event(DebateEvent(type=DebateEventType.DEBATE_START, round_number=0, data=question))
 
-    # 运行图 — 使用 astream 实现实时输出
+    # Run graph — use astream for real-time output
     final_state = None
     current_round_num = 0
 
     async for event in app.astream(initial_state, stream_mode="values"):
         state = event if isinstance(event, DebateState) else DebateState(**event)
 
-        # 检测新一轮开始
+        # Detect new round start
         if state.current_round > current_round_num:
             current_round_num = state.current_round
             if use_rich:
@@ -113,7 +113,7 @@ async def run_debate(
             else:
                 _emit(DebateEventType.ROUND_START, current_round_num, current_round_num)
 
-        # 实时打印各 Agent 结果
+        # Print each agent result in real-time
         if state.current_round_advocate and (
             final_state is None or final_state.current_round_advocate != state.current_round_advocate
         ):
@@ -161,7 +161,7 @@ async def run_debate(
 
 
 def main():
-    """CLI 入口"""
+    """CLI entry point."""
     load_dotenv()
 
     logging.basicConfig(
@@ -171,8 +171,8 @@ def main():
     )
 
     if len(sys.argv) < 2:
-        print("用法: python -m maverickj.main <决策问题> [补充背景]")
-        print('示例: python -m maverickj.main "我们应该将 Java 后端迁移到 Go 吗？" "团队50人，使用 Spring Boot 3年"')
+        print("Usage: python -m maverickj.main <decision question> [context]")
+        print('Example: python -m maverickj.main "Should we migrate our Java backend to Go?" "50-person team, 3 years on Spring Boot"')
         sys.exit(1)
 
     question = sys.argv[1]
@@ -191,7 +191,7 @@ def main():
         output_file = "reports/debate-report.md"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(markdown)
-        print(f"\n📄 报告已保存至: {output_file}")
+        print(f"\n📄 Report saved to: {output_file}")
 
 
 if __name__ == "__main__":

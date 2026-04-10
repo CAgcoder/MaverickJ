@@ -8,13 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 async def moderator_node(state: DebateState, router: ModelRouter) -> dict:
-    """Moderator node: 主持人裁决，同时组装本轮 DebateRound"""
-    logger.info(f"=== 第 {state.current_round} 轮 - Moderator 裁决 ===")
+    """Moderator node: delivers ruling and assembles the DebateRound record."""
+    logger.info(f"=== Round {state.current_round} - Moderator ruling ===")
 
     agent = ModeratorAgent(router)
     response, usage = await agent.run(state)
 
-    # 组装完整的 DebateRound
+    # Assemble the complete DebateRound
     current_round = DebateRound(
         round_number=state.current_round,
         advocate=state.current_round_advocate,

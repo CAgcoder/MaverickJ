@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 async def fact_checker_node(state: DebateState, router: ModelRouter) -> dict:
-    """Fact-Checker node: 事实校验"""
-    logger.info(f"=== 第 {state.current_round} 轮 - Fact-Checker 校验 ===")
+    """Fact-Checker node: fact and logic verification."""
+    logger.info(f"=== Round {state.current_round} - Fact-Checker verification ===")
 
     agent = FactCheckerAgent(router)
     response, usage = await agent.run(state)
 
-    # 更新 ArgumentRegistry: 将 fact check 结果关联到论点
+    # Update ArgumentRegistry: associate fact-check results with arguments
     registry = ArgumentRegistry(state.argument_registry)
     for check in response.checks:
         registry.add_fact_check(check.target_argument_id, check)

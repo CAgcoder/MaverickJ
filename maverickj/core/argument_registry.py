@@ -13,7 +13,7 @@ class ArgumentRegistry:
         self._arguments: dict[str, ArgumentRecord] = dict(data) if data else {}
 
     def register(self, arg: Argument, round_num: int, agent: str) -> None:
-        """注册新论点"""
+        """Register a new argument."""
         self._arguments[arg.id] = ArgumentRecord(
             argument=arg,
             raised_in_round=round_num,
@@ -21,7 +21,7 @@ class ArgumentRegistry:
         )
 
     def update_status(self, arg_id: str, new_status: ArgumentStatus, reason: str = "") -> None:
-        """更新论点状态"""
+        """Update the status of an argument."""
         if arg_id in self._arguments:
             record = self._arguments[arg_id]
             record.argument.status = new_status
@@ -29,12 +29,12 @@ class ArgumentRegistry:
                 record.modification_history.append(reason)
 
     def add_rebuttal(self, arg_id: str, rebuttal: Rebuttal) -> None:
-        """给论点添加反驳记录"""
+        """Add a rebuttal record to an argument."""
         if arg_id in self._arguments:
             self._arguments[arg_id].rebuttals.append(rebuttal)
 
     def add_fact_check(self, arg_id: str, check: FactCheck) -> None:
-        """给论点添加校验记录"""
+        """Add a fact-check record to an argument."""
         if arg_id in self._arguments:
             self._arguments[arg_id].fact_checks.append(check)
             if check.verdict == FactCheckVerdict.FLAWED:
@@ -45,7 +45,7 @@ class ArgumentRegistry:
                 )
 
     def get_active_arguments(self, side: str | None = None) -> list[ArgumentRecord]:
-        """获取所有存活论点，可按阵营过滤"""
+        """Return all surviving arguments, optionally filtered by side."""
         results = [
             r for r in self._arguments.values()
             if r.argument.status in (ArgumentStatus.ACTIVE, ArgumentStatus.MODIFIED)
@@ -55,7 +55,7 @@ class ArgumentRegistry:
         return results
 
     def get_survivor_stats(self) -> dict:
-        """生成论点存活统计"""
+        """Return argument survival statistics."""
         total = len(self._arguments)
         active = len([
             r for r in self._arguments.values()

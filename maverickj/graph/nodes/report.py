@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 async def report_node(state: DebateState, router: ModelRouter) -> dict:
-    """Report node: 生成最终决策报告"""
-    logger.info("=== 生成决策报告 ===")
+    """Report node: generate the final decision report."""
+    logger.info("=== Generating decision report ===")
 
     agent = BaseAgent(router)
     agent.role = "report_generator"

@@ -9,20 +9,20 @@ logger = logging.getLogger(__name__)
 
 
 async def critic_node(state: DebateState, router: ModelRouter) -> dict:
-    """Critic node: 反方批评"""
-    logger.info(f"=== 第 {state.current_round} 轮 - Critic 发言 ===")
+    """Critic node: con-side critique."""
+    logger.info(f"=== Round {state.current_round} - Critic turn ===")
 
     agent = CriticAgent(router)
     response, usage = await agent.run(state)
 
-    # 更新 ArgumentRegistry
+    # Update ArgumentRegistry
     registry = ArgumentRegistry(state.argument_registry)
     for arg in response.arguments:
         registry.register(arg, state.current_round, "critic")
     for rebuttal in response.rebuttals:
         registry.add_rebuttal(rebuttal.target_argument_id, rebuttal)
 
-    # 处理让步
+    # Handle concessions
     for concession in response.concessions:
         for arg_id, record in registry.to_dict().items():
             if record.raised_by == "critic" and concession in record.argument.claim:

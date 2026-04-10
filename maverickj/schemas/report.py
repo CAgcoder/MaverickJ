@@ -11,17 +11,17 @@ class ConfidenceLevel(str, Enum):
 
 
 class ScoredArgument(BaseModel):
-    claim: str = Field(description="论点主张")
-    strength: int = Field(description="论点强度 1-10")
-    survived_challenges: int = Field(description="经历挑战次数")
-    modifications: list[str] = Field(default_factory=list, description="修正历史")
-    supporting_evidence: Optional[str] = Field(default=None, description="支撑证据")
+    claim: str = Field(description="Argument claim")
+    strength: int = Field(description="Argument strength 1-10")
+    survived_challenges: int = Field(description="Number of challenges survived")
+    modifications: list[str] = Field(default_factory=list, description="Modification history")
+    supporting_evidence: Optional[str] = Field(default=None, description="Supporting evidence")
 
 
 class Recommendation(BaseModel):
-    direction: str = Field(description="建议方向")
-    confidence: ConfidenceLevel = Field(description="置信度")
-    conditions: list[str] = Field(description="建议成立的前提条件")
+    direction: str = Field(description="Recommended direction")
+    confidence: ConfidenceLevel = Field(description="Confidence level")
+    conditions: list[str] = Field(description="Preconditions for the recommendation to hold")
 
 
 class DebateStats(BaseModel):
@@ -35,10 +35,10 @@ class DebateStats(BaseModel):
 
 class DecisionReport(BaseModel):
     question: str
-    executive_summary: str = Field(description="3-5 句话概括")
+    executive_summary: str = Field(description="3-5 sentence summary")
     recommendation: Recommendation
-    pro_arguments: list[ScoredArgument] = Field(description="正方论点，按 strength 降序")
-    con_arguments: list[ScoredArgument] = Field(description="反方论点，按 strength 降序")
+    pro_arguments: list[ScoredArgument] = Field(description="Pro-side arguments sorted by strength descending")
+    con_arguments: list[ScoredArgument] = Field(description="Con-side arguments sorted by strength descending")
     resolved_disagreements: list[str] = Field(default_factory=list)
     unresolved_disagreements: list[str] = Field(default_factory=list)
     risk_factors: list[str] = Field(default_factory=list)

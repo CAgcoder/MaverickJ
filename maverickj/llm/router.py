@@ -38,10 +38,10 @@ class ModelRouter:
 
     def get_model(self, agent_role: str) -> BaseChatModel:
         if agent_role not in self._models:
-            raise ValueError(f"未知的 agent 角色: {agent_role}")
+            raise ValueError(f"Unknown agent role: {agent_role}")
         return self._models[agent_role]
 
     def get_structured_model(self, agent_role: str, schema: type[BaseModel]) -> Runnable:
-        """返回带结构化输出的模型（使用 json_mode 避免 Claude XML tool-call 解析异常）"""
+        """Return a model with structured output (using json_mode to avoid Claude XML tool-call parsing issues)."""
         model = self.get_model(agent_role)
         return model.with_structured_output(schema, method="json_mode")

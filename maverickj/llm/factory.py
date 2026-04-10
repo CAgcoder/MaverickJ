@@ -4,7 +4,7 @@ from maverickj.schemas.config import ModelAssignment
 
 
 def create_model(assignment: ModelAssignment) -> BaseChatModel:
-    """根据配置创建对应的 LangChain 模型实例"""
+    """Create the corresponding LangChain model instance from config."""
     provider = assignment.provider.lower()
     temperature = assignment.temperature if assignment.temperature is not None else 0.7
     max_tokens = assignment.max_tokens or 4096
@@ -31,4 +31,4 @@ def create_model(assignment: ModelAssignment) -> BaseChatModel:
             max_output_tokens=max_tokens,
         )
     else:
-        raise ValueError(f"不支持的模型 provider: {provider}")
+        raise ValueError(f"Unsupported model provider: {provider}")

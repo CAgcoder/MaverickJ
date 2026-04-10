@@ -40,7 +40,7 @@ class DebateRound(BaseModel):
 
 
 class DebateState(BaseModel):
-    """LangGraph 的共享状态对象，在所有 node 之间传递"""
+    """Shared state object passed between all LangGraph nodes."""
     id: str
     question: str
     context: Optional[str] = None
