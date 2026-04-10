@@ -118,13 +118,27 @@ DebateRound:
 
 ## 6. 报告生成
 
-终止后，Report Generator 读取完整辩论 transcript，输出 `DecisionReport`：
+终止后，生成包含 **两个部分** 的完整报告：
+
+### 第一部分：完整辩论记录
+
+渲染每一轮的完整 transcript，包括：
+- 每轮每个 Agent 的完整输出（论点、反驳、让步、信心变化）
+- Fact-Checker 对每个论点的判定和说明
+- Moderator 的总结、收敛分数可视化和裁决
+- 辩论终止状态和原因
+
+### 第二部分：总结分析
+
+由 Report Generator 读取完整辩论 transcript，输出 `DecisionReport`：
 
 - **executive_summary**: 3-5 句概括
 - **recommendation**: 建议方向 + 置信度 (high/medium/low) + 前提条件
 - **pro/con_arguments**: 仅包含 active/modified 状态的论点，按 strength 降序
 - **unresolved_disagreements**: 未达成共识的核心议题
 - **next_steps**: 具体可执行的后续行动 (不允许模糊措辞)
+
+最终报告是一份 **自包含文档**：读者无需参与辩论过程，仅靠报告即可完整理解决策论证的全貌。
 
 ---
 
