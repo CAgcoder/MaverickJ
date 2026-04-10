@@ -342,9 +342,20 @@ router.get_structured_model("fact_checker", FactCheckResponse)
 
 ### 6. 决策报告生成
 
-辩论终止后，`report_node`（`src/graph/nodes/report.py`）调用一次独立 LLM 请求生成结构化 `DecisionReport`，再由 `render_report_to_markdown()`（`src/output/renderer.py`）渲染为 Markdown。
+辩论终止后，`report_node`（`src/graph/nodes/report.py`）调用一次独立 LLM 请求生成结构化 `DecisionReport`，再由 `render_report_to_markdown()`（`src/output/renderer.py`）渲染为 Markdown，自动保存至 `reports/debate-report.md`。
 
-**报告内容包含：**
+报告采用**两段式结构**：
+
+**第一部分：完整辩论记录**
+
+逐轮展示所有 Agent 的完整发言，包含：
+- 🟢 正方论证者：论点（含推理与证据）、反驳、让步、信心变化
+- 🔴 反方批评者：同上
+- 🔍 事实校验者：逐条校验结果（✅/❌/⚠️/❓）与整体评估
+- ⚖️ 主持人：轮次总结、关键分歧、收敛进度条、下轮焦点
+- 辩论终止状态与原因
+
+**第二部分：总结分析**
 
 | 模块 | 说明 |
 |------|------|
@@ -448,6 +459,19 @@ debate-engine-py/
 ├── examples/
 │   ├── build_vs_buy.py                  # 示例：自建 vs 采购分析平台
 │   └── java_to_go.py                    # 示例：Java 服务迁移 Go
+│
+├── skills/                              # 对抗式辩论 Skill 文档
+│   └── adversarial-debate/              # 可移植 Skill（含 Agent 定义、Schema、集成指南）
+│       ├── SKILL.md
+│       ├── 01-identity.md               # Agent 身份与角色定义
+│       ├── 02-protocol.md               # 辩论协议与轮次规则
+│       ├── 03-prompts.md                # 各 Agent 系统提示词
+│       ├── 04-schemas.md                # 结构化 JSON Schema
+│       ├── 05-registry.md               # 论点注册表
+│       ├── 06-integration.md            # 框架集成指南
+│       └── 07-config.md                 # 配置参数
+│
+├── SKILL_adversarial_debate.md          # 对抗式辩论 Skill 顶层入口文档
 │
 └── tests/
     ├── conftest.py                      # 全部 pytest fixtures
@@ -582,7 +606,7 @@ python -m src.main "决策问题"
 python -m src.main "决策问题" "可选的补充背景"
 ```
 
-辩论结束后，报告自动保存至 `debate-report.md`。
+辩论结束后，报告自动保存至 `reports/debate-report.md`。
 
 ### 方式二：编程调用
 
@@ -610,7 +634,7 @@ asyncio.run(main())
 
 | 文件 | 格式 | 说明 |
 |------|------|------|
-| `debate-report.md` | Markdown | 可读的决策报告 |
+| `reports/debate-report.md` | Markdown | 两段式可读决策报告（完整辩论记录 + 总结分析） |
 
 ---
 

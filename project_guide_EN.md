@@ -149,6 +149,20 @@ Built with [Rich](https://github.com/Textualize/rich):
 
 ---
 
+## Report Output Format
+
+After debate completion, the Markdown report is automatically saved to `reports/debate-report.md` using a **two-part structure**:
+
+**Part 1: Full Debate Transcript** — complete per-round output from every agent:
+- 🟢 Advocate / 🔴 Critic: arguments (reasoning + evidence), rebuttals, concessions, confidence shift
+- 🔍 Fact-Checker: per-argument verdicts (✅/❌/⚠️/❓) and overall assessment
+- ⚖️ Moderator: round summary, key divergences, convergence progress bar, next-round focus
+- Debate termination status and reason
+
+**Part 2: Summary Analysis** — structured decision report including: executive summary, recommendation (with confidence), surviving pro/con arguments, resolved/unresolved disagreements, risk factors, next steps, and debate statistics.
+
+---
+
 ## Configuration
 
 ### .env
@@ -198,6 +212,19 @@ debate-engine-py/
 │   ├── build_vs_buy.py
 │   └── java_to_go.py
 │
+├── skills/                              # Adversarial debate Skill documentation
+│   └── adversarial-debate/              # Portable Skill (Agent defs, schemas, integration guide)
+│       ├── SKILL.md
+│       ├── 01-identity.md
+│       ├── 02-protocol.md
+│       ├── 03-prompts.md
+│       ├── 04-schemas.md
+│       ├── 05-registry.md
+│       ├── 06-integration.md
+│       └── 07-config.md
+│
+├── SKILL_adversarial_debate.md          # Top-level adversarial debate Skill entry doc
+│
 └── tests/                               # 18 cases, all async-safe
 ```
 
@@ -232,7 +259,12 @@ async def main():
         context="6-person team, Q3 deadline, ~$200K budget",
     )
     if state.final_report:
-        print(render_report_to_markdown(state.final_report, state))
+        md = render_report_to_markdown(state.final_report, state)
+        import os
+        os.makedirs("reports", exist_ok=True)
+        with open("reports/debate-report.md", "w", encoding="utf-8") as f:
+            f.write(md)
+        print("Report saved to reports/debate-report.md")
 
 asyncio.run(main())
 ```

@@ -157,7 +157,7 @@ pip install -e .
 
 # 方式 1: 直接命令行
 python -m src.main "我们应该将 Java 后端迁移到 Go 吗？" "50人团队，Spring Boot 3年"
-# 输出：debate-report.md
+# 输出：reports/debate-report.md
 
 # 方式 2: 示例脚本
 python examples/java_to_go.py
@@ -192,6 +192,18 @@ Moderator 的收敛分数动态显示：
 ```
 ██████████░░░░░░░░░░ 70%
 ```
+
+## 报告输出格式
+
+辩论结束后，Markdown 报告自动保存至 `reports/debate-report.md`，采用**两段式结构**：
+
+**第一部分：完整辩论记录** — 逐轮展示所有 Agent 的完整发言：
+- 🟢 正方论证者 / 🔴 反方批评者：论点（含推理与证据）、反驳、让步、信心变化
+- 🔍 事实校验者：逐条判定（✅/❌/⚠️/❓）与整体评估
+- ⚖️ 主持人：轮次总结、关键分歧、收敛进度条、下轮焦点
+- 辩论终止状态与原因
+
+**第二部分：总结分析** — 结构化决策报告，包含：执行摘要、建议方向（含置信度）、正反方存活论点、已解决 / 未解决分歧、风险因素、后续行动及辩论统计。
 
 ---
 
@@ -292,6 +304,9 @@ root/
 ├── examples/                   # 使用示例
 │   ├── java_to_go.py           # 决策示例
 │   └── build_vs_buy.py         # 决策示例
+├── skills/                     # 对抗式辩论 Skill 文档
+│   └── adversarial-debate/     # 可移植 Skill（Agent 定义、Schema、集成指南等）
+├── SKILL_adversarial_debate.md # 对抗式辩论 Skill 顶层入口文档
 └── tests/                      # 测试用例
 ```
 

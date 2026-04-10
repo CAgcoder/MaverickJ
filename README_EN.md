@@ -342,9 +342,20 @@ Every termination records a reason in `state.convergence_reason`, visible in the
 
 ### 6. Decision Report Generation
 
-After debate termination, `report_node` (`src/graph/nodes/report.py`) makes one independent LLM call to generate a structured `DecisionReport`, which is then rendered to Markdown by `render_report_to_markdown()` (`src/output/renderer.py`).
+After debate termination, `report_node` (`src/graph/nodes/report.py`) makes one independent LLM call to generate a structured `DecisionReport`, which is then rendered to Markdown by `render_report_to_markdown()` (`src/output/renderer.py`) and automatically saved to `reports/debate-report.md`.
 
-**Report sections:**
+The report uses a **two-part structure**:
+
+**Part 1: Full Debate Transcript**
+
+Displays each round's complete agent output in order:
+- 🟢 Advocate: arguments (with reasoning & evidence), rebuttals, concessions, confidence shift
+- 🔴 Critic: same
+- 🔍 Fact-Checker: per-argument verdicts (✅/❌/⚠️/❓) and overall assessment
+- ⚖️ Moderator: round summary, key divergences, convergence progress bar, next-round focus
+- Debate termination status and reason
+
+**Part 2: Summary Analysis**
 
 | Section | Description |
 |---------|-------------|
@@ -448,6 +459,19 @@ debate-engine-py/
 ├── examples/
 │   ├── build_vs_buy.py                  # Example: Build vs. Buy analytics platform
 │   └── java_to_go.py                    # Example: Migrate Java services to Go
+│
+├── skills/                              # Adversarial debate Skill documentation
+│   └── adversarial-debate/              # Portable Skill (Agent definitions, schemas, integration guide)
+│       ├── SKILL.md
+│       ├── 01-identity.md               # Agent identity & role definitions
+│       ├── 02-protocol.md               # Debate protocol & round rules
+│       ├── 03-prompts.md                # System prompts per Agent
+│       ├── 04-schemas.md                # Structured JSON schemas
+│       ├── 05-registry.md               # Argument registry
+│       ├── 06-integration.md            # Framework integration guide
+│       └── 07-config.md                 # Configuration parameters
+│
+├── SKILL_adversarial_debate.md          # Top-level adversarial debate Skill entry doc
 │
 └── tests/
     ├── conftest.py                      # All pytest fixtures
@@ -582,7 +606,7 @@ python -m src.main "Decision question"
 python -m src.main "Decision question" "Optional supplementary context"
 ```
 
-After the debate ends, the report is automatically saved to `debate-report.md`.
+After the debate ends, the report is automatically saved to `reports/debate-report.md`.
 
 ### Option 2: Programmatic API
 
@@ -610,7 +634,7 @@ asyncio.run(main())
 
 | File | Format | Description |
 |------|--------|-------------|
-| `debate-report.md` | Markdown | Human-readable decision report |
+| `reports/debate-report.md` | Markdown | Two-part decision report (full transcript + summary analysis) |
 
 ---
 
