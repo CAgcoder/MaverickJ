@@ -1,6 +1,6 @@
 [中文](README.md) | **English**
 
-# 🏛️ Auto-Gangjing — Multi-Agent Debate-Driven Decision Engine
+# 🏛️ MaverickJ — Multi-Agent Debate-Driven Decision Engine
 
 > Automated devil's advocate — combating cyber sycophancy
 
