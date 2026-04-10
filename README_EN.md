@@ -9,7 +9,7 @@
 [![Claude API](https://img.shields.io/badge/LLM-Claude%20%7C%20OpenAI%20%7C%20Gemini-orange.svg)](https://www.anthropic.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Auto-Gangjing is a debate-driven decision analysis engine built on multi-agent collaboration. When a user submits a decision question, the system launches **4 AI Agents with distinct roles** to conduct multi-round structured debate (Pro arguments → Con rebuttals → Fact verification → Moderator ruling), simulating a real deliberative process, and ultimately outputs a **structured decision report** containing pro/con arguments, key divergences, risk assessments, and action recommendations.
+MaverickJ is a debate-driven decision analysis engine built on multi-agent collaboration. When a user submits a decision question, the system launches **4 AI Agents with distinct roles** to conduct multi-round structured debate (Pro arguments → Con rebuttals → Fact verification → Moderator ruling), simulating a real deliberative process, and ultimately outputs a **structured decision report** containing pro/con arguments, key divergences, risk assessments, and action recommendations.
 
 AI can augment human decision-making with vast knowledge — but don't let AI replace your thinking. The devil's advocate exists to counteract the influence of RLHF (Reinforcement Learning from Human Feedback) on human judgment.
 
@@ -71,8 +71,8 @@ AI can augment human decision-making with vast knowledge — but don't let AI re
 ### Option A: 🐳 Docker (Recommended)
 
 ```bash
-git clone https://github.com/CAgcoder/auto-gangjing.git
-cd auto-gangjing
+git clone https://github.com/CAgcoder/MaverickJ.git
+cd MaverickJ
 
 cp .env.example .env
 # Edit .env, fill in at least one API Key
@@ -85,8 +85,8 @@ docker compose run --rm debate
 ### Option B: Local Python
 
 ```bash
-git clone https://github.com/CAgcoder/auto-gangjing.git
-cd auto-gangjing
+git clone https://github.com/CAgcoder/MaverickJ.git
+cd MaverickJ
 
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
@@ -167,7 +167,7 @@ python examples/library_api.py      # Library API usage example
 ```bash
 pip install maverickj
 # Or install the latest from GitHub
-pip install git+https://github.com/CAgcoder/auto-gangjing.git
+pip install git+https://github.com/CAgcoder/MaverickJ.git
 ```
 
 ```python
@@ -439,7 +439,7 @@ Automatically saved to `reports/debate-report.md` after debate completion, using
 ## Project Structure
 
 ```
-auto-gangjing/
+MaverickJ/
 ├── config.yaml                 # Default config (models, rounds, etc.)
 ├── pyproject.toml              # Dependencies & packaging
 ├── Dockerfile                  # Docker image definition
