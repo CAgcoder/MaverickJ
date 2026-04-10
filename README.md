@@ -220,15 +220,15 @@ Claude Desktop 配置 (`~/Library/Application Support/Claude/claude_desktop_conf
 ## 系统架构
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 flowchart TD
     UI["🖥️ 用户界面层\nCLI 交互式输入 · 实时辩论流输出 · 决策报告"]
-    GRAPH["📊 LangGraph 编排图\nDebateState（Pydantic 共享状态）贯穿全图\nArgumentRegistry · TranscriptManager 嵌入状态"]
     LLM["🤖 LLM 调用层\nModelRouter → LangChain BaseChatModel\nwith_structured_output(PydanticSchema) / 重试机制\n支持: Claude · OpenAI · Gemini（可按 Agent 分配）"]
 
-    UI --> GRAPH
-    GRAPH --> LLM
+    UI --> GRAPH_DETAIL
+    GRAPH_DETAIL --> LLM
 
-    subgraph GRAPH_DETAIL["LangGraph 编排图内部"]
+    subgraph GRAPH_DETAIL["📊 LangGraph 编排图 — DebateState · ArgumentRegistry · TranscriptManager"]
         direction LR
         RS[round_setup] --> ADV[advocate]
         ADV --> CRT[critic]
@@ -244,6 +244,7 @@ flowchart TD
 ### 单轮数据流
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 flowchart TD
     INPUT(["📥 用户问题 + 历史记录"])
     S1["round_setup — 递增轮次、清空临时字段"]
@@ -263,6 +264,7 @@ flowchart TD
 ### 分层架构
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 graph TB
     subgraph OUTPUT["🖥️ Output Layer"]
         RICH[Rich 终端流式输出]

@@ -220,15 +220,15 @@ Available MCP Tools:
 ## System Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 flowchart TD
     UI["🖥️ User Interface Layer\nCLI interactive input · Live debate stream · Decision report"]
-    GRAPH["📊 LangGraph Orchestration Graph\nDebateState (Pydantic shared state) flows through graph\nArgumentRegistry · TranscriptManager embedded in state"]
     LLM["🤖 LLM Call Layer\nModelRouter → LangChain BaseChatModel\nwith_structured_output(PydanticSchema) / retry logic\nSupports: Claude · OpenAI · Gemini (per-Agent routing)"]
 
-    UI --> GRAPH
-    GRAPH --> LLM
+    UI --> GRAPH_DETAIL
+    GRAPH_DETAIL --> LLM
 
-    subgraph GRAPH_DETAIL["LangGraph Orchestration Graph Internals"]
+    subgraph GRAPH_DETAIL["📊 LangGraph Orchestration Graph — DebateState · ArgumentRegistry · TranscriptManager"]
         direction LR
         RS[round_setup] --> ADV[advocate]
         ADV --> CRT[critic]
@@ -244,6 +244,7 @@ flowchart TD
 ### Single-Round Data Flow
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 flowchart TD
     INPUT(["📥 User question + history"])
     S1["round_setup — Increment round, clear temp fields"]
@@ -263,6 +264,7 @@ flowchart TD
 ### Layered Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true}}}%%
 graph TB
     subgraph OUTPUT["🖥️ Output Layer"]
         RICH[Rich terminal stream]
