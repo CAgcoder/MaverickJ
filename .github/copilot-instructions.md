@@ -63,6 +63,6 @@ docker compose build && docker compose run --rm debate  # Docker
 
 After **every code change**, update the documentation to reflect the change:
 
-1. **`project_guide.md`** (Chinese) — update any affected sections (architecture, config, usage, project structure, FAQ, etc.)
-2. **`project_guide_EN.md`** (English) — apply the same updates in English, keeping both files in sync
+1. **`README.md`** (Chinese) — update any affected sections (architecture, config, usage, project structure, FAQ, etc.)
+2. **`README_EN.md`** (English) — apply the same updates in English, keeping both files in sync
 3. Both files must stay consistent with each other at all times. Never update one without updating the other.
