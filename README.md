@@ -1,6 +1,6 @@
 **中文** | [English](README_EN.md)
 
-# 🏛️ Auto-Gangjing — 多 Agent 对抗式决策引擎
+# 🏛️ MaverickJ — 多 Agent 对抗式决策引擎
 
 > 自动化杠精，对抗赛博精神病
 
