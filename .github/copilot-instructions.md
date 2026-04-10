@@ -19,20 +19,20 @@ Multi-agent debate-driven decision engine. Four AI agents (Advocate, Critic, Fac
 pip install -e .                  # Install in dev mode
 pip install -e ".[dev]"           # With dev deps (pytest, ruff)
 pytest                            # Run tests (asyncio_mode=auto)
-ruff check src/ tests/            # Lint
-ruff format src/ tests/           # Format
+ruff check maverickj/ tests/      # Lint
+ruff format maverickj/ tests/     # Format
 debate-interactive                # Run interactive CLI
-python -m src.main "question"     # Run batch mode
+python -m maverickj.main "question"  # Run batch mode
 docker compose build && docker compose run --rm debate  # Docker
 ```
 
 ## Architecture (5 layers)
 
-1. **Agents** (`src/agents/`): BaseAgent → concrete agents. Each has `async run(state) -> (response, usage)`
-2. **Graph** (`src/graph/`): LangGraph StateGraph with nodes: round_setup → advocate → critic → fact_checker → moderator → [continue|report]
-3. **Schemas** (`src/schemas/`): Pydantic v2 models for state, arguments, agent responses, reports
-4. **LLM** (`src/llm/`): ModelRouter + factory pattern. Per-agent model assignment with fallback
-5. **Output** (`src/output/`): Rich console streaming + Markdown report rendering
+1. **Agents** (`maverickj/agents/`): BaseAgent → concrete agents. Each has `async run(state) -> (response, usage)`
+2. **Graph** (`maverickj/graph/`): LangGraph StateGraph with nodes: round_setup → advocate → critic → fact_checker → moderator → [continue|report]
+3. **Schemas** (`maverickj/schemas/`): Pydantic v2 models for state, arguments, agent responses, reports
+4. **LLM** (`maverickj/llm/`): ModelRouter + factory pattern. Per-agent model assignment with fallback
+5. **Output** (`maverickj/output/`): Rich console streaming + Markdown report rendering
 
 ## Core Conventions
 
@@ -49,14 +49,14 @@ docker compose build && docker compose run --rm debate  # Docker
 
 - **Agent pattern**: Inherit `BaseAgent`, set `role = "..."`, override `async def run(state: DebateState)`
 - **Node pattern**: `async def {role}_node(state: DebateState, router: ModelRouter) -> dict`; router injected via `functools.partial()`
-- **Prompt pattern**: Each agent has `build_{role}_system_prompt(state)` + `build_{role}_user_message(state)` in `src/prompts/`
+- **Prompt pattern**: Each agent has `build_{role}_system_prompt(state)` + `build_{role}_user_message(state)` in `maverickj/prompts/`
 - **Registry pattern**: `ArgumentRegistry` tracks argument lifecycle (ACTIVE → REBUTTED/CONCEDED/MODIFIED)
 
 ## File Organization
 
 - One class per file for agents, nodes, schemas
-- Prompts co-located by agent role in `src/prompts/`
-- Tests mirror `src/` structure under `tests/`
+- Prompts co-located by agent role in `maverickj/prompts/`
+- Tests mirror `maverickj/` structure under `tests/`
 - Examples in `examples/` follow: load config → define question → run_debate → render → save
 
 ## Documentation Maintenance

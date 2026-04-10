@@ -8,9 +8,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 
-from src.main import load_config, run_debate
-from src.output.renderer import render_report_to_markdown
-from src.schemas.report import DecisionReport
+from maverickj.main import load_config, run_debate
+from maverickj.output.renderer import render_report_to_markdown
+from maverickj.schemas.report import DecisionReport
 
 load_dotenv()
 

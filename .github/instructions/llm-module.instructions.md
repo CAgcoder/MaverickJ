@@ -1,6 +1,6 @@
 ---
 description: "Use when working with the LLM module: ModelRouter, model factory, cost calculation, or adding/configuring LLM providers. Covers factory dispatch, router caching, structured output, and fallback patterns."
-applyTo: "src/llm/**"
+applyTo: "maverickj/llm/**"
 ---
 # LLM Module Patterns
 
@@ -50,5 +50,5 @@ This ensures Pydantic schema validation on every LLM response.
 
 1. Add provider case in `factory.py` `create_model()`
 2. Add pricing to `MODEL_PRICING` in `cost.py`
-3. Add provider option to `ModelAssignment.provider` field in `src/schemas/config.py`
+3. Add provider option to `ModelAssignment.provider` field in `maverickj/schemas/config.py`
 4. Install langchain integration package, add to `pyproject.toml`

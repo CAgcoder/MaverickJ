@@ -1,6 +1,6 @@
 ---
 description: "Use when creating or modifying LangGraph nodes, graph builder, or convergence conditions. Covers node function signatures, state update patterns, and conditional edge logic."
-applyTo: "src/graph/**"
+applyTo: "maverickj/graph/**"
 ---
 # LangGraph Graph Patterns
 
@@ -14,7 +14,7 @@ round_setup → advocate → critic → fact_checker → moderator
                                      └── "terminate" → report → END
 ```
 
-Built in `src/graph/builder.py` as `StateGraph(DebateState)`.
+Built in `maverickj/graph/builder.py` as `StateGraph(DebateState)`.
 
 ## Node Function Signature
 

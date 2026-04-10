@@ -1,8 +1,21 @@
 [project]
-name = "debate-engine"
-version = "0.1.0"
-description = "Multi-Agent debate-driven decision engine"
+name = "maverickj"
+version = "0.2.0"
+description = "Multi-Agent adversarial debate-driven decision engine"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.12"
+keywords = ["ai", "agents", "debate", "decision-making", "langgraph", "llm", "mcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 dependencies = [
     "langchain-core>=0.3.0",
     "langchain-anthropic>=0.3.0",
@@ -18,15 +31,24 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
     "ruff>=0.8.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/yourusername/auto-gangjing"
+Source = "https://github.com/yourusername/auto-gangjing"
+Issues = "https://github.com/yourusername/auto-gangjing/issues"
+
 [project.scripts]
-debate = "src.main:main"
-debate-interactive = "src.cli:main"
+debate = "maverickj.main:main"
+debate-interactive = "maverickj.cli:main"
+maverickj-mcp = "maverickj.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -40,4 +62,4 @@ testpaths = ["tests"]
 target-version = "py312"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["maverickj"]

@@ -23,8 +23,8 @@ All examples follow this exact structure:
 
 import asyncio
 
-from src.main import load_config, run_debate
-from src.output.renderer import render_report_to_markdown
+from maverickj.main import load_config, run_debate
+from maverickj.output.renderer import render_report_to_markdown
 
 
 async def main():

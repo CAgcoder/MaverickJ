@@ -2,10 +2,10 @@
 import pytest
 from datetime import datetime
 
-from src.schemas.agents import AgentResponse, FactCheckResponse, ModeratorResponse
-from src.schemas.arguments import Argument, ArgumentStatus, FactCheck, FactCheckVerdict, Rebuttal
-from src.schemas.config import DebateEngineConfig
-from src.schemas.debate import DebateConfig, DebateMetadata, DebateRound, DebateState, DebateStatus
+from maverickj.schemas.agents import AgentResponse, FactCheckResponse, ModeratorResponse
+from maverickj.schemas.arguments import Argument, ArgumentStatus, FactCheck, FactCheckVerdict, Rebuttal
+from maverickj.schemas.config import DebateEngineConfig
+from maverickj.schemas.debate import DebateConfig, DebateMetadata, DebateRound, DebateState, DebateStatus
 
 
 @pytest.fixture

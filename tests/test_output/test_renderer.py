@@ -1,8 +1,8 @@
 """测试报告渲染"""
 import pytest
 
-from src.output.renderer import render_report_to_markdown
-from src.schemas.report import (
+from maverickj.output.renderer import render_report_to_markdown
+from maverickj.schemas.report import (
     ConfidenceLevel,
     DebateStats,
     DecisionReport,

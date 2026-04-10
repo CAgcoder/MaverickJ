@@ -32,7 +32,7 @@ dependencies = [
 
 ### Step 2: Extend the Factory
 
-In `src/llm/factory.py`, add a new case in `create_model()`:
+In `maverickj/llm/factory.py`, add a new case in `create_model()`:
 
 ```python
 def create_model(assignment: ModelAssignment) -> BaseChatModel:
@@ -48,7 +48,7 @@ def create_model(assignment: ModelAssignment) -> BaseChatModel:
 
 ### Step 3: Add Provider to Config Schema
 
-In `src/schemas/config.py`, extend the `provider` field in `ModelAssignment`:
+In `maverickj/schemas/config.py`, extend the `provider` field in `ModelAssignment`:
 
 ```python
 provider: Literal["claude", "openai", "gemini", "{provider}"]
@@ -56,7 +56,7 @@ provider: Literal["claude", "openai", "gemini", "{provider}"]
 
 ### Step 4: Add Pricing
 
-In `src/llm/cost.py`, add entries to `MODEL_PRICING`:
+In `maverickj/llm/cost.py`, add entries to `MODEL_PRICING`:
 
 ```python
 MODEL_PRICING = {
@@ -75,7 +75,7 @@ The API key should follow the LangChain convention (auto-loaded from env):
 
 ```bash
 # Verify the model loads
-python -c "from src.llm.factory import create_model; ..."
+python -c "from maverickj.llm.factory import create_model; ..."
 
 # Run with the new provider
 # Update config.yaml:

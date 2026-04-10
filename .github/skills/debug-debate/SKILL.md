@@ -24,7 +24,7 @@ argument-hint: "Describe the issue (e.g., debate never converges, agent parsing 
      convergence_score_target: 0.8  # Score threshold (0-1)
    ```
 2. **Inspect moderator responses** — look at `convergence_score` in each round
-3. **Check `should_continue()` logic** in `src/graph/conditions.py`:
+3. **Check `should_continue()` logic** in `maverickj/graph/conditions.py`:
    - Needs N consecutive rounds with score ≥ target
    - OR moderator sets `should_continue: false`
 4. **Common fix**: Lower `convergence_score_target` or reduce `convergence_threshold`
@@ -43,7 +43,7 @@ argument-hint: "Describe the issue (e.g., debate never converges, agent parsing 
 
 1. **Check `round_setup` node** — ensure all transient fields are properly cleared
 2. **Check node return dicts** — every node must return a `dict` with valid state keys
-3. **Verify `functools.partial()`** injection in `src/graph/builder.py`
+3. **Verify `functools.partial()`** injection in `maverickj/graph/builder.py`
 4. **Check state field types** — LangGraph requires matching Pydantic types
 
 ### Issue: Argument ID Conflicts
@@ -63,12 +63,12 @@ argument-hint: "Describe the issue (e.g., debate never converges, agent parsing 
 
 ```bash
 # Run with verbose logging
-python -m src.main "test question" 2>&1 | head -100
+python -m maverickj.main "test question" 2>&1 | head -100
 
 # Check if models load correctly
 python -c "
-from src.llm.router import ModelRouter
-from src.schemas.config import DebateEngineConfig
+from maverickj.llm.router import ModelRouter
+from maverickj.schemas.config import DebateEngineConfig
 config = DebateEngineConfig()
 router = ModelRouter(config)
 print('Models loaded successfully')
@@ -77,7 +77,7 @@ print('Models loaded successfully')
 # Test a single agent in isolation
 python -c "
 import asyncio
-from src.agents.advocate import AdvocateAgent
+from maverickj.agents.advocate import AdvocateAgent
 # ... construct minimal state and test
 "
 

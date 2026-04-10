@@ -1,12 +1,12 @@
 ---
 description: "Use when writing or modifying prompt builder functions for debate agents. Covers system/user prompt structure, language detection, history formatting, and argument ID conventions."
-applyTo: "src/prompts/**"
+applyTo: "maverickj/prompts/**"
 ---
 # Prompt Engineering Conventions
 
 ## Builder Function Pattern
 
-Each agent role has exactly two functions in `src/prompts/{role}.py`:
+Each agent role has exactly two functions in `maverickj/prompts/{role}.py`:
 
 ```python
 def build_{role}_system_prompt(state: DebateState) -> str:

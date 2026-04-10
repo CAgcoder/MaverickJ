@@ -1,8 +1,8 @@
 """测试 ArgumentRegistry"""
 import pytest
 
-from src.core.argument_registry import ArgumentRegistry
-from src.schemas.arguments import (
+from maverickj.core.argument_registry import ArgumentRegistry
+from maverickj.schemas.arguments import (
     Argument,
     ArgumentStatus,
     FactCheck,

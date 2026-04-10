@@ -3,9 +3,9 @@ from datetime import datetime
 
 import pytest
 
-from src.graph.conditions import should_continue
-from src.schemas.agents import ModeratorResponse
-from src.schemas.debate import (
+from maverickj.graph.conditions import should_continue
+from maverickj.schemas.agents import ModeratorResponse
+from maverickj.schemas.debate import (
     DebateConfig,
     DebateMetadata,
     DebateRound,
@@ -32,8 +32,8 @@ def _make_state(
 
 
 def _make_round(round_num: int, should_cont: bool, score: float) -> DebateRound:
-    from src.schemas.agents import AgentResponse, FactCheckResponse
-    from src.schemas.arguments import Argument
+    from maverickj.schemas.agents import AgentResponse, FactCheckResponse
+    from maverickj.schemas.arguments import Argument
 
     dummy_agent = AgentResponse(
         agent_role="advocate",

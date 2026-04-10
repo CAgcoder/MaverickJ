@@ -1,6 +1,6 @@
 ---
 description: "Use when working with the output module: Rich console streaming, Markdown report rendering, or Jinja2 templates. Covers Rich panel patterns, agent styling, and template conventions."
-applyTo: ["src/output/**", "src/templates/**"]
+applyTo: ["maverickj/output/**", "maverickj/templates/**"]
 ---
 # Output & Rendering Patterns
 
@@ -8,9 +8,9 @@ applyTo: ["src/output/**", "src/templates/**"]
 
 | File | Purpose |
 |------|---------|
-| `src/output/stream.py` | Rich console real-time debate output |
-| `src/output/renderer.py` | DecisionReport → Markdown string |
-| `src/templates/*.j2` | Jinja2 templates for reports and argument cards |
+| `maverickj/output/stream.py` | Rich console real-time debate output |
+| `maverickj/output/renderer.py` | DecisionReport → Markdown string |
+| `maverickj/templates/*.j2` | Jinja2 templates for reports and argument cards |
 
 ## Rich Console Streaming (`stream.py`)
 
@@ -31,7 +31,7 @@ def render_report_to_markdown(report: DecisionReport, state: DebateState) -> str
 
 ## Jinja2 Templates
 
-Located in `src/templates/`:
+Located in `maverickj/templates/`:
 - `report.md.j2` — Full decision report template
 - `argument_card.md.j2` — Individual argument display card
 

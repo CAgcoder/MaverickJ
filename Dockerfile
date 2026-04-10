@@ -14,8 +14,8 @@ COPY pyproject.toml ./
 RUN pip install --no-cache-dir -e .
 
 # Copy project source code
-COPY src/ ./src/
+COPY maverickj/ ./maverickj/
 COPY config.yaml ./
 
 # Interactive CLI entrypoint
-CMD ["python", "-m", "src.cli"]
+CMD ["python", "-m", "maverickj.cli"]

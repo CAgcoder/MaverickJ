@@ -11,7 +11,7 @@ applyTo: "tests/**"
 
 ## Directory Structure
 
-Tests mirror `src/` layout:
+Tests mirror `maverickj/` layout:
 ```
 tests/
 ├── conftest.py            # Shared fixtures

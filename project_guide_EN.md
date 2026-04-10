@@ -117,7 +117,7 @@ Interactive mode (start container, then run multiple debates):
 
 ```bash
 docker-compose run --rm debate bash
-python -m src.main "Build vs. Buy analytics platform?"
+python -m maverickj.main "Build vs. Buy analytics platform?"
 ```
 
 ### Option B: Local Python
@@ -126,13 +126,13 @@ python -m src.main "Build vs. Buy analytics platform?"
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env           # fill in ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY
-python -m src.main "Decision question"
+python -m maverickj.main "Decision question"
 ```
 
 ### Option C: CLI One-Shot
 
 ```bash
-python -m src.main "Decision question" "Optional context (team size, budget, constraints, etc.)"
+python -m maverickj.main "Decision question" "Optional context (team size, budget, constraints, etc.)"
 ```
 
 ---
@@ -198,7 +198,12 @@ debate-engine-py/
 ├── pyproject.toml                       # Dependencies + packaging
 ├── Dockerfile / docker-compose.yml      # Container setup
 │
-├── src/
+├── maverickj/
+│   ├── __init__.py                      # Public API (from maverickj import DebateEngine)
+│   ├── engine.py                        # DebateEngine / DebateResult facade
+│   ├── events.py                        # Event system (DebateEvent, EventCallback)
+│   ├── mcp_server.py                    # MCP Server (maverickj-mcp command)
+│   ├── py.typed                         # PEP 561 type marker
 │   ├── main.py                          # Entry point + run_debate() API
 │   ├── agents/                          # Advocate · Critic · FactChecker · Moderator
 │   ├── core/                            # ArgumentRegistry · TranscriptManager
@@ -210,7 +215,8 @@ debate-engine-py/
 │
 ├── examples/
 │   ├── build_vs_buy.py
-│   └── java_to_go.py
+│   ├── java_to_go.py
+│   └── library_api.py                   # Library / facade API example
 │
 ├── skills/                              # Adversarial debate Skill documentation
 │   └── adversarial-debate/              # Portable Skill (Agent defs, schemas, integration guide)
@@ -318,7 +324,7 @@ No. It calls external LLM APIs and requires an internet connection.
 Use a faster/cheaper model for the Fact-Checker or Moderator (e.g. `gemini-2.0-flash`) and reserve the expensive model for Advocate/Critic only.
 
 **Q: Can it use providers other than Claude/OpenAI/Gemini?**
-Yes, any LangChain-compatible `BaseChatModel` works. Add the provider in `src/llm/factory.py`.
+Yes, any LangChain-compatible `BaseChatModel` works. Add the provider in `maverickj/llm/factory.py`.
 
 ---
 

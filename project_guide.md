@@ -156,7 +156,7 @@ debate-interactive
 pip install -e .
 
 # 方式 1: 直接命令行
-python -m src.main "我们应该将 Java 后端迁移到 Go 吗？" "50人团队，Spring Boot 3年"
+python -m maverickj.main "我们应该将 Java 后端迁移到 Go 吗？" "50人团队，Spring Boot 3年"
 # 输出：reports/debate-report.md
 
 # 方式 2: 示例脚本
@@ -270,7 +270,12 @@ root/
 ├── .env.example                # 环境变量模板
 ├── config.yaml                 # 默认配置
 ├── pyproject.toml              # 项目依赖
-├── src/
+├── maverickj/
+│   ├── __init__.py             # 公共 API 入口（from maverickj import DebateEngine）
+│   ├── engine.py               # DebateEngine / DebateResult Facade 类
+│   ├── events.py               # 事件系统（DebateEvent, EventCallback）
+│   ├── mcp_server.py           # MCP Server（maverickj-mcp 命令）
+│   ├── py.typed                # PEP 561 类型标记
 │   ├── main.py                 # CLI 一次性入口（debate 命令）
 │   ├── cli.py                  # 交互式入口（debate-interactive 命令）
 │   ├── schemas/                # Pydantic models
@@ -303,7 +308,8 @@ root/
 │   └── templates/              # Jinja2 模板
 ├── examples/                   # 使用示例
 │   ├── java_to_go.py           # 决策示例
-│   └── build_vs_buy.py         # 决策示例
+│   ├── build_vs_buy.py         # 决策示例
+│   └── library_api.py          # 库 API 用法示例
 ├── skills/                     # 对抗式辩论 Skill 文档
 │   └── adversarial-debate/     # 可移植 Skill（Agent 定义、Schema、集成指南等）
 ├── SKILL_adversarial_debate.md # 对抗式辩论 Skill 顶层入口文档
@@ -321,26 +327,44 @@ pytest
 
 ### 程序化调用
 
-在自己的 Python 代码中集成辩论引擎：
+在自己的 Python 代码中集成辩论引擎（推荐使用高层 API）：
 
 ```python
 import asyncio
-from src.main import run_debate, load_config
+from maverickj import DebateEngine
 
 async def main():
-    config = load_config("config.yaml")
-    state = await run_debate(
+    engine = DebateEngine(max_rounds=3)
+    result = await engine.debate(
         question="我们应该迁移到微服务架构吗？",
         context="团队 30 人，当前单体应用 100 万行代码",
-        config=config
     )
     
-    # 访问结果
-    print(f"状态: {state.status.value}")
-    print(f"轮数: {len(state.rounds)}")
-    print(f"报告: {state.final_report.executive_summary}")
+    # 访问结构化报告
+    print(result.report.recommendation)
+    # 渲染 Markdown
+    print(result.to_markdown())
 
 asyncio.run(main())
+```
+
+静默模式（不输出到终端，适合集成场景）：
+
+```python
+engine = DebateEngine(on_event=None)  # 无任何输出
+result = await engine.debate(question)
+```
+
+自定义事件回调：
+
+```python
+from maverickj import DebateEngine, DebateEvent
+
+def my_handler(event: DebateEvent) -> None:
+    print(f"[轮{event.round_number}] {event.type.value}")
+
+engine = DebateEngine(on_event=my_handler)
+result = await engine.debate(question)
 ```
 
 ### 混合 Provider 模式
@@ -363,10 +387,64 @@ agents:
     model: claude-haiku-4-5-20251001  # 速度优化
 ```
 
+### 作为依赖库安装
+
+第三方开发者可以通过以下方式安装并使用本引擎：
+
+```bash
+# 从 PyPI 安装
+pip install maverickj
+
+# 或从 GitHub 安装最新版
+pip install git+https://github.com/yourusername/auto-gangjing.git
+```
+
+```python
+from maverickj import DebateEngine
+
+engine = DebateEngine(provider="claude", model="claude-haiku-4-5-20251001")
+result = await engine.debate("Should we adopt microservices?")
+print(result.report.recommendation)
+```
+
+### 作为 MCP Server 运行
+
+安装 MCP 扩展并启动服务器：
+
+```bash
+pip install "maverickj[mcp]"
+maverickj-mcp                  # stdio 传输（默认，适合 Claude Desktop）
+maverickj-mcp --transport sse  # SSE 传输
+```
+
+Claude Desktop 配置 (`~/Library/Application Support/Claude/claude_desktop_config.json`)：
+
+```json
+{
+  "mcpServers": {
+    "maverickj": {
+      "command": "maverickj-mcp",
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-...",
+        "DEBATE_CONFIG_PATH": "/path/to/config.yaml"
+      }
+    }
+  }
+}
+```
+
+可用 MCP Tools：
+- `run_debate` — 完整辩论，返回 JSON 决策报告
+- `run_debate_markdown` — 完整辩论，返回 Markdown 报告
+- `create_debate_session` — 创建辩论会话（缓存结果）
+- `run_debate_round` — 逐轮获取辩论结果
+- `get_debate_status` — 查询会话状态
+- `finalize_debate` — 获取会话最终报告
+
 ### 访问详细辩论历史
 
 ```python
-from src.core.argument_registry import ArgumentRegistry
+from maverickj.core.argument_registry import ArgumentRegistry
 
 # 从最终状态获取所有论点
 registry = state.argument_registry
@@ -418,7 +496,7 @@ debate:
 ### Q: 支持其他 LLM Provider 吗？
 
 **A:** 当前支持 Claude、OpenAI、Google Gemini。如需添加其他 Provider：
-1. 在 `src/llm/factory.py` 添加模型创建逻辑
+1. 在 `maverickj/llm/factory.py` 添加模型创建逻辑
 2. 在 `config.yaml` 中定义新 provider
 3. 参考 `langchain` 官方文档添加对应的 `BaseChatModel` 实现
 

@@ -1,6 +1,6 @@
 ---
 description: "Use when writing or modifying Pydantic v2 schemas for debate state, agent responses, arguments, or reports. Covers field conventions, enum patterns, and structured output compatibility."
-applyTo: "src/schemas/**"
+applyTo: "maverickj/schemas/**"
 ---
 # Schema Design Rules
 

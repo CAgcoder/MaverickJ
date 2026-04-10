@@ -75,7 +75,7 @@ agents:
 
 ### 4. Prompt Tuning
 
-For domain-specific tuning, modify prompts in `src/prompts/`:
+For domain-specific tuning, modify prompts in `maverickj/prompts/`:
 
 - **Add domain context** to system prompts for specialized debates
 - **Strengthen evidence requirements** by adding explicit instructions

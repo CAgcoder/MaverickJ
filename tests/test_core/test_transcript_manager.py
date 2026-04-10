@@ -3,8 +3,8 @@ from datetime import datetime
 
 import pytest
 
-from src.core.transcript_manager import TranscriptManager
-from src.schemas.debate import DebateConfig, DebateMetadata, DebateState, DebateStatus
+from maverickj.core.transcript_manager import TranscriptManager
+from maverickj.schemas.debate import DebateConfig, DebateMetadata, DebateState, DebateStatus
 
 
 class TestTranscriptManager:
