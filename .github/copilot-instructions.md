@@ -1,4 +1,4 @@
-# Auto-Gangjing — Project Guidelines
+# MaverickJ — Project Guidelines
 
 ## Identity
 

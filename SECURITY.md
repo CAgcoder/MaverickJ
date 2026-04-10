@@ -28,7 +28,7 @@ You can expect an acknowledgement within **72 hours** and a resolution timeline 
 
 ## Security Architecture
 
-Auto-Gangjing is a multi-agent LLM debate engine. The following threat surfaces are inherent to its design and must be understood by operators and contributors.
+MaverickJ is a multi-agent LLM debate engine. The following threat surfaces are inherent to its design and must be understood by operators and contributors.
 
 ### 1. API Key Management
 

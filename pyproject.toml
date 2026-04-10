@@ -41,9 +41,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/auto-gangjing"
-Source = "https://github.com/yourusername/auto-gangjing"
-Issues = "https://github.com/yourusername/auto-gangjing/issues"
+Homepage = "https://github.com/CAgcoder/MaverickJ.git"
+Source = "https://github.com/CAgcoder/MaverickJ.git"
+Issues = "https://github.com/CAgcoder/MaverickJ.git/issues"
 
 [project.scripts]
 debate = "maverickj.main:main"
