@@ -31,6 +31,7 @@ class ModelRouter:
                 provider=self.config.default_provider,
                 model=self.config.default_model,
                 temperature=self.config.default_temperature,
+                max_tokens=self.config.default_max_tokens,
             )
             default_model = create_model(default)
             for role in AGENT_ROLES:
@@ -42,6 +43,6 @@ class ModelRouter:
         return self._models[agent_role]
 
     def get_structured_model(self, agent_role: str, schema: type[BaseModel]) -> Runnable:
-        """Return a model with structured output (using json_mode to avoid Claude XML tool-call parsing issues)."""
+        """Return a model with structured output bound to the given Pydantic schema."""
         model = self.get_model(agent_role)
-        return model.with_structured_output(schema, method="json_mode")
+        return model.with_structured_output(schema)

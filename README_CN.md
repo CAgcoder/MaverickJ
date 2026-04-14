@@ -354,29 +354,39 @@ ANTHROPIC_API_KEY=sk-ant-xxxxx
 ### 辩论参数（`config.yaml`）
 
 ```yaml
-# 方案 A：统一模型（所有 Agent 共用）
-default_provider: claude
-default_model: claude-haiku-4-5-20251001
-default_temperature: 0.4
+# 混合调用：需要深度推理的角色用 Sonnet，结构化分析用 Haiku
+agents:
+  advocate:
+    provider: claude
+    model: claude-sonnet-4-5-20251001  # 构建最强正方论点，需要深度创造性推理
+    temperature: 0.7
+    max_tokens: 8192
+  critic:
+    provider: claude
+    model: claude-sonnet-4-5-20251001  # 寻找最难发现的漏洞，需要最严格的对抗性推理
+    temperature: 0.7
+    max_tokens: 8192
+  fact_checker:
+    provider: claude
+    model: claude-haiku-4-5-20251001   # 逻辑谬误的结构化模式匹配，分析性而非创造性
+    temperature: 0.3
+    max_tokens: 4096
+  moderator:
+    provider: claude
+    model: claude-haiku-4-5-20251001   # 收敛评分和轮次总结，机械性任务
+    temperature: 0.4
+    max_tokens: 4096
+  report_generator:
+    provider: claude
+    model: claude-sonnet-4-5-20251001  # 用户读到的最终报告，合成质量最重要
+    temperature: 0.5
+    max_tokens: 8192
 
-# 方案 B：混合调用（取消注释以启用，可为不同 Agent 指定不同模型）
-# agents:
-#   advocate:
-#     provider: claude
-#     model: claude-sonnet-4-20250514
-#     temperature: 0.7
-#   critic:
-#     provider: openai
-#     model: gpt-4o
-#     temperature: 0.7
-#   fact_checker:
-#     provider: openai
-#     model: gpt-4o-mini        # 成本优化
-#     temperature: 0.3
-#   moderator:
-#     provider: claude
-#     model: claude-haiku-4-5-20251001  # 速度优化
-#     temperature: 0.5
+# 若需切换为统一模型（取消注释并注释掉 agents: 块）：
+# default_provider: claude
+# default_model: claude-haiku-4-5-20251001
+# default_temperature: 0.4
+# default_max_tokens: 8192
 
 debate:
   max_rounds: 5                # 最大辩论轮数

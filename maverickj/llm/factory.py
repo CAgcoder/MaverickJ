@@ -7,7 +7,7 @@ def create_model(assignment: ModelAssignment) -> BaseChatModel:
     """Create the corresponding LangChain model instance from config."""
     provider = assignment.provider.lower()
     temperature = assignment.temperature if assignment.temperature is not None else 0.7
-    max_tokens = assignment.max_tokens or 4096
+    max_tokens = assignment.max_tokens or 8192
 
     if provider == "claude":
         from langchain_anthropic import ChatAnthropic

@@ -1,30 +1,38 @@
-# 方案 A：统一切换
-default_provider: Claude
-default_model: claude-haiku-4-5-20251001
-default_temperature: 0.4
+# 方案 A：统一切换（已禁用，使用方案 B 混合调用）
+# default_provider: Claude
+# default_model: claude-haiku-4-5-20251001
+# default_temperature: 0.4
+# default_max_tokens: 8192
 
-# 方案 B：混合调用（取消注释以启用）
-# agents:
-#   advocate:
-#     provider: claude
-#     model: claude-sonnet-4-20250514
-#     temperature: 0.7
-#   critic:
-#     provider: openai
-#     model: gpt-4o
-#     temperature: 0.7
-#   fact_checker:
-#     provider: openai
-#     model: gpt-4o-mini
-#     temperature: 0.3
-#   moderator:
-#     provider: claude
-#     model: claude-haiku-4-5-20251001
-#     temperature: 0.5
-#   report_generator:
-#     provider: claude
-#     model: claude-sonnet-4-20250514
-#     temperature: 0.5
+# 方案 B：混合调用
+# 需要深度推理/创造性论证的角色 → Sonnet（更智能）
+# 结构化分析/机械性评分的角色  → Haiku（更快）
+agents:
+  advocate:
+    provider: claude
+    model: claude-sonnet-4-6 # Builds strongest arguments — deep creative reasoning
+    temperature: 0.6
+    max_tokens: 8192
+  critic:
+    provider: claude
+    model: claude-sonnet-4-6  # Finds hardest-to-spot flaws — most rigorous adversarial reasoning
+    temperature: 0.6
+    max_tokens: 8192
+  fact_checker:
+    provider: claude
+    model: claude-haiku-4-5  # Structured pattern-matching against logical fallacies — analytical, not creative
+    temperature: 0.3
+    max_tokens: 8192
+  moderator:
+    provider: claude
+    model: claude-haiku-4-5  # Convergence scoring and round summaries — mechanical task
+    temperature: 0.4
+    max_tokens: 4096
+  report_generator:
+    provider: claude
+    model: claude-sonnet-4-6  # Final deliverable the user reads — synthesis quality matters most
+    temperature: 0.4
+    max_tokens: 8192
 
 debate:
   max_rounds: 5

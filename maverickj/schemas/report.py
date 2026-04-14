@@ -43,4 +43,4 @@ class DecisionReport(BaseModel):
     unresolved_disagreements: list[str] = Field(default_factory=list)
     risk_factors: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
-    debate_stats: DebateStats
+    debate_stats: Optional[DebateStats] = None

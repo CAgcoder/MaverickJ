@@ -353,32 +353,42 @@ ANTHROPIC_API_KEY=sk-ant-xxxxx
 ### Debate Parameters (`config.yaml`)
 
 ```yaml
-# Option A: Unified model (shared by all Agents)
-default_provider: claude
-default_model: claude-haiku-4-5-20251001
-default_temperature: 0.4
+# Mixed mode: Sonnet for roles requiring deep reasoning, Haiku for structured analysis
+agents:
+  advocate:
+    provider: claude
+    model: claude-sonnet-4-6 # Builds strongest arguments — deep creative reasoning
+    temperature: 0.6
+    max_tokens: 8192
+  critic:
+    provider: claude
+    model: claude-sonnet-4-6  # Finds hardest-to-spot flaws — most rigorous adversarial reasoning
+    temperature: 0.6
+    max_tokens: 8192
+  fact_checker:
+    provider: claude
+    model: claude-haiku-4-5  # Structured pattern-matching against logical fallacies — analytical, not creative
+    temperature: 0.3
+    max_tokens: 4096
+  moderator:
+    provider: claude
+    model: claude-haiku-4-5  # Convergence scoring and round summaries — mechanical task
+    temperature: 0.4
+    max_tokens: 4096
+  report_generator:
+    provider: claude
+    model: claude-sonnet-4-6  # Final deliverable the user reads — synthesis quality matters most
+    temperature: 0.4
+    max_tokens: 8192
 
-# Option B: Mixed providers (uncomment to enable per-Agent model assignment)
-# agents:
-#   advocate:
-#     provider: claude
-#     model: claude-sonnet-4-20250514
-#     temperature: 0.7
-#   critic:
-#     provider: openai
-#     model: gpt-4o
-#     temperature: 0.7
-#   fact_checker:
-#     provider: openai
-#     model: gpt-4o-mini        # Cost optimization
-#     temperature: 0.3
-#   moderator:
-#     provider: claude
-#     model: claude-haiku-4-5-20251001  # Speed optimization
-#     temperature: 0.5
+# To switch to a single unified model (uncomment and remove the agents: block):
+# default_provider: claude
+# default_model: claude-haiku-4-5-20251001
+# default_temperature: 0.4
+# default_max_tokens: 8192
 
 debate:
-  max_rounds: 5                # Maximum debate rounds
+  max_rounds: 6                # Maximum debate rounds
   convergence_threshold: 2     # Consecutive convergence rounds threshold
   convergence_score_target: 0.8  # Convergence score target
   language: auto               # auto / zh / en

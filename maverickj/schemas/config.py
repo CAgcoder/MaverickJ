@@ -26,5 +26,6 @@ class DebateEngineConfig(BaseModel):
     default_provider: str = "claude"
     default_model: str = "claude-sonnet-4-20250514"
     default_temperature: float = 0.7
+    default_max_tokens: int = 8192
     agents: Optional[AgentModelConfig] = None
     debate: DebateConfig = DebateConfig()

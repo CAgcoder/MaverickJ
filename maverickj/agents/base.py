@@ -49,6 +49,13 @@ class BaseAgent:
                 return response, usage
 
             except ValidationError as e:
+                # If the output was truncated due to max_tokens, retrying won't help.
+                # Raise immediately so the caller sees a clear error instead of looping.
+                if self._is_max_tokens_error(e):
+                    raise RuntimeError(
+                        f"[{self.role}] Output truncated (max_tokens stop reason). "
+                        "Increase 'default_max_tokens' in config.yaml or shorten your prompts."
+                    ) from e
                 last_error = e
                 logger.warning(f"[{self.role}] Pydantic validation failed (attempt {attempt}): {e}")
                 # Append stricter format instruction for retry
@@ -68,6 +75,24 @@ class BaseAgent:
         raise RuntimeError(
             f"[{self.role}] Failed after {MAX_RETRIES} retries. Last error: {last_error}"
         )
+
+    @staticmethod
+    def _is_max_tokens_error(e: ValidationError) -> bool:
+        """Check whether a ValidationError was caused by a truncated (max_tokens) LLM output."""
+        error_str = str(e).lower()
+        if "max_tokens" in error_str or "maximum context length" in error_str:
+            return True
+        # LangChain's openai_tools parser raises "field required" errors when the JSON
+        # output is truncated mid-stream. Detect this by checking if ALL errors are
+        # "missing" type and at least one input_value is an empty dict.
+        try:
+            errors = e.errors()
+            if errors and all(err.get("type") == "missing" for err in errors):
+                if any(err.get("input") == {} for err in errors):
+                    return True
+        except Exception:
+            pass
+        return False
 
     @staticmethod
     def _extract_usage(response: Any) -> dict:
