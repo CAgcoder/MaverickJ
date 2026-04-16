@@ -81,6 +81,10 @@ cp .env.example .env
 
 docker compose build
 docker compose run --rm debate
+
+# 容器会把 ./maverickj 绑定挂载到 /app/maverickj。
+# 日常代码修改无需重新 build，重启容器即可生效。
+# 只有在 pyproject.toml 或 requirements.lock 变更后才需要重新 build。
 ```
 
 ### 选项 B：本地 Python
@@ -90,7 +94,8 @@ git clone https://github.com/CAgcoder/MaverickJ.git
 cd MaverickJ
 
 python -m venv .venv && source .venv/bin/activate
-pip install -e .
+pip install -r requirements.lock
+pip install -e ".[dev]"
 
 cp .env.example .env
 # 编辑 .env，填入 API Key
@@ -101,6 +106,7 @@ debate-interactive              # 交互式模式
 ### 选项 C：CLI 一次性模式
 
 ```bash
+pip install -r requirements.lock
 pip install -e .
 python -m maverickj.main "我们应该将 Java 后端迁移到 Go 吗？" "50人团队，Spring Boot 3年"
 # 输出：reports/debate-report.md

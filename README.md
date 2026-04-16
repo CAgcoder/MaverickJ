@@ -80,6 +80,10 @@ cp .env.example .env
 
 docker compose build
 docker compose run --rm debate
+
+# The container bind-mounts ./maverickj into /app/maverickj.
+# Code changes take effect immediately without rebuilding.
+# Rebuild only after changing pyproject.toml or requirements.lock.
 ```
 
 ### Option B: Local Python
@@ -89,7 +93,8 @@ git clone https://github.com/CAgcoder/MaverickJ.git
 cd MaverickJ
 
 python -m venv .venv && source .venv/bin/activate
-pip install -e .
+pip install -r requirements.lock
+pip install -e ".[dev]"
 
 cp .env.example .env
 # Edit .env, fill in API Key
@@ -100,6 +105,7 @@ debate-interactive              # Interactive mode
 ### Option C: CLI One-Shot
 
 ```bash
+pip install -r requirements.lock
 pip install -e .
 python -m maverickj.main "Should we migrate our Java backend to Go?" "50-person team, Spring Boot for 3 years"
 # Output: reports/debate-report.md

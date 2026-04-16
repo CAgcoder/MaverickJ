@@ -8,14 +8,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files first to leverage Docker layer cache
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md requirements.lock ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# Install pinned runtime dependencies first, then install the package itself.
+RUN pip install --no-cache-dir -r requirements.lock
 
 # Copy project source code
 COPY maverickj/ ./maverickj/
 COPY config.yaml ./
+
+RUN pip install --no-cache-dir --no-deps -e .
 
 # Interactive CLI entrypoint
 CMD ["python", "-m", "maverickj.cli"]
