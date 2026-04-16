@@ -66,6 +66,9 @@ def build_advocate_system_prompt(state: DebateState) -> str:
 - `arguments` MUST be a JSON **array** of objects, e.g. [{{"id": "ADV-R{current_round}-01", "claim": "...", "reasoning": "...", "status": "active"}}]
 - `rebuttals` MUST be a JSON **array** of objects, e.g. [{{"target_argument_id": "CRT-R1-01", "counter_claim": "...", "reasoning": "..."}}]
 - `concessions` MUST be a JSON **array** of strings, e.g. ["point A", "point B"]
+- Inside any JSON string value, **NEVER** write bare `"` characters as normal prose punctuation.
+- If you need quotation marks in Chinese text, use `「」` or `“”`; if you must use ASCII quotes, escape them as `\\"`.
+- Every field value must remain valid JSON after serialization. Invalid example: `"将"竞争激烈"等同于"不可行""`; valid example: `"将「竞争激烈」等同于「不可行」"`.
 - **NEVER** serialize any array as a quoted string. Return raw JSON arrays only."""
 
 
