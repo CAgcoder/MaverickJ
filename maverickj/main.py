@@ -3,6 +3,7 @@ Multi-Agent Debate Decision Engine — main entry point.
 """
 import asyncio
 import logging
+import re
 import sys
 import uuid
 from datetime import datetime
@@ -188,7 +189,10 @@ def main():
         markdown = render_report_to_markdown(report, state)
         import os
         os.makedirs("reports", exist_ok=True)
-        output_file = "reports/debate-report.md"
+        slug = re.sub(r'[\\/:*?"<>|]+', "-", question)
+        slug = re.sub(r'\s+', "-", slug).strip("-")[:60] or "debate"
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        output_file = f"reports/{slug}-{timestamp}.md"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(markdown)
         print(f"\n📄 Report saved to: {output_file}")

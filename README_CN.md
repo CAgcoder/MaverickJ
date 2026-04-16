@@ -520,7 +520,11 @@ ruff format maverickj/ tests/  # Format
 编辑 `config.yaml` 的 `debate` 部分，调整 `max_rounds`、`convergence_threshold`、`convergence_score_target`。
 
 **Q: Docker 启动后输入问题没反应？**
-确保 Docker Desktop 正在运行、`.env` 包含有效 API Key、`docker compose build` 成功完成。
+`docker compose up` 不会将终端 stdin 转发给容器，无法进行交互式输入。请改用以下命令：
+```bash
+docker compose run --rm debate
+```
+同时确保 Docker Desktop 已运行、`.env` 包含有效 API Key、`docker compose build` 已成功完成。
 
 **Q: 支持本地离线运行吗？**
 不支持。系统需要调用 LLM API（Claude / OpenAI / Gemini）。

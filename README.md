@@ -518,8 +518,12 @@ ruff format maverickj/ tests/  # Format
 **Q: How do I change the number of debate rounds or convergence threshold?**
 Edit the `debate` section in `config.yaml` — adjust `max_rounds`, `convergence_threshold`, `convergence_score_target`.
 
-**Q: Docker starts but nothing happens after entering a question?**
-Ensure Docker Desktop is running, `.env` contains a valid API Key, and `docker compose build` completed successfully.
+**Q: Docker starts but I can't type anything in the terminal?**
+`docker compose up` does not forward the terminal's stdin to the container, making interactive input impossible. Use this command instead:
+```bash
+docker compose run --rm debate
+```
+Also ensure Docker Desktop is running, `.env` contains a valid API Key, and `docker compose build` completed successfully.
 
 **Q: Does it work offline?**
 No. The system requires LLM API calls (Claude / OpenAI / Gemini).
