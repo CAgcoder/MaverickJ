@@ -4,17 +4,32 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from maverickj.schemas.arguments import Argument, FactCheck, FactCheckVerdict, Rebuttal
+import logging
 
+logger = logging.getLogger(__name__)
 
 def _coerce_json_string_to_list(v: Any) -> Any:
     """If the LLM returns a list field as a JSON-encoded string, parse it first."""
     if isinstance(v, str):
+        # 1. 移除大模型经常带上的 Markdown 反引号
+        v_cleaned = v.strip()
+        if v_cleaned.startswith("```json"):
+            v_cleaned = v_cleaned[7:]
+        elif v_cleaned.startswith("```"):
+            v_cleaned = v_cleaned[3:]
+        if v_cleaned.endswith("```"):
+            v_cleaned = v_cleaned[:-3]
+        v_cleaned = v_cleaned.strip()
+
         try:
-            parsed = json.loads(v)
+            parsed = json.loads(v_cleaned)
             if isinstance(parsed, list):
                 return parsed
-        except (json.JSONDecodeError, ValueError):
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            # 2. 打印/记录错误，千万不要直接 pass 掉，否则无从排查
+            logger.error(f"JSON 预处理解析失败: {e}\n问题字符串: {v}")
+            # 依然返回原值，让外部的 Pydantic 抛出校验异常，触发重试机制
+            pass 
     return v
 
 
