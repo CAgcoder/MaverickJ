@@ -76,7 +76,11 @@ def build_moderator_system_prompt(state: DebateState) -> str:
 ## Scoring Anchors
 - If this round has only 0–1 new arguments and concessions are increasing, convergence_score should be 0.7–0.9.
 - If both sides present many new arguments and rebuttals, convergence_score should be 0.1–0.4.
-- If key divergences are narrowing but new refined arguments still emerge, convergence_score should be 0.4–0.7."""
+- If key divergences are narrowing but new refined arguments still emerge, convergence_score should be 0.4–0.7.
+
+## ⚠️ Output Format Requirements
+- `key_divergences` MUST be a JSON **array** of strings, e.g. ["divergence 1", "divergence 2"]
+- **NEVER** serialize any array as a quoted string. Return raw JSON arrays only."""
 
 
 def build_moderator_user_message(state: DebateState) -> str:

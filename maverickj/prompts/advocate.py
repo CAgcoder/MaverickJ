@@ -60,7 +60,13 @@ def build_advocate_system_prompt(state: DebateState) -> str:
 - At the end of each round, report confidence_shift: your change in confidence in the pro-side position (between -1 and 1; negative means decreased confidence).
 - Do not ignore valid rebuttals from the opponent.
 - Do not repeat arguments that have already been refuted.
-- Only concede when the opponent's argument is genuinely unassailable."""
+- Only concede when the opponent's argument is genuinely unassailable.
+
+## ⚠️ Output Format Requirements
+- `arguments` MUST be a JSON **array** of objects, e.g. [{{"id": "ADV-R{current_round}-01", "claim": "...", "reasoning": "...", "status": "active"}}]
+- `rebuttals` MUST be a JSON **array** of objects, e.g. [{{"target_argument_id": "CRT-R1-01", "counter_claim": "...", "reasoning": "..."}}]
+- `concessions` MUST be a JSON **array** of strings, e.g. ["point A", "point B"]
+- **NEVER** serialize any array as a quoted string. Return raw JSON arrays only."""
 
 
 def build_advocate_user_message(state: DebateState) -> str:

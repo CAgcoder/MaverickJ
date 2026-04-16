@@ -42,7 +42,11 @@ def build_fact_checker_system_prompt(state: DebateState) -> str:
   - needs_context: the argument itself is sound but requires critical missing context to hold
   - unverifiable: cannot be judged true or false with the information currently available
 - If you detect cognitive biases (confirmation bias, survivorship bias, slippery slope, etc.), explicitly call them out.
-- Provide an overall_assessment summarizing the quality of argumentation this round."""
+- Provide an overall_assessment summarizing the quality of argumentation this round.
+
+## ⚠️ Output Format Requirements
+- `checks` MUST be a JSON **array** of objects, e.g. [{{"target_argument_id": "ADV-R1-01", "verdict": "valid", "explanation": "..."}}]
+- **NEVER** serialize any array as a quoted string. Return raw JSON arrays only."""
 
 
 def build_fact_checker_user_message(state: DebateState) -> str:

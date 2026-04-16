@@ -41,7 +41,13 @@ def build_critic_system_prompt(state: DebateState) -> str:
 - If any of the Advocate's arguments are genuinely unassailable, concede them (add to concessions).
 - No sophistry or straw-man fallacies; you must attack the opponent's actual argument.
 - New argument ID format: CRT-R{current_round}-01, CRT-R{current_round}-02, ...
-- At the end of each round, report confidence_shift: your change in confidence in the con-side position."""
+- At the end of each round, report confidence_shift: your change in confidence in the con-side position.
+
+## ⚠️ Output Format Requirements
+- `arguments` MUST be a JSON **array** of objects, e.g. [{{"id": "CRT-R{current_round}-01", "claim": "...", "reasoning": "...", "status": "active"}}]
+- `rebuttals` MUST be a JSON **array** of objects, e.g. [{{"target_argument_id": "ADV-R1-01", "counter_claim": "...", "reasoning": "..."}}]
+- `concessions` MUST be a JSON **array** of strings, e.g. ["point A", "point B"]
+- **NEVER** serialize any array as a quoted string. Return raw JSON arrays only."""
 
 
 def build_critic_user_message(state: DebateState) -> str:
