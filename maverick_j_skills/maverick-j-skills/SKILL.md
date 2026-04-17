@@ -1,3 +1,8 @@
+---
+name: marverick-j-skills
+description: 对任何决策问题发起多 Agent 对抗式辩论，通过正反攻防、事实校验和收敛裁决，产出结构化决策报告。
+---
+
 # Adversarial Multi-Agent Debate Engine
 
 > 对任何决策问题发起多 Agent 对抗式辩论，通过正反攻防、事实校验和收敛裁决，产出结构化决策报告。
