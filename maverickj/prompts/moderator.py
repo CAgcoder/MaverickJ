@@ -48,6 +48,11 @@ def _format_round(r: DebateRound) -> str:
 
 
 def build_moderator_system_prompt(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.moderator import build_sc_moderator_system_prompt
+
+        return build_sc_moderator_system_prompt(state)
+
     lang = "Chinese" if state.config.language in ("zh", "auto") else "English"
 
     return f"""You are the debate Moderator, responsible for controlling the debate pace, judging convergence, and guiding focus.

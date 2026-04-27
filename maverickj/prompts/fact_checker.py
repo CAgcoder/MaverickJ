@@ -26,6 +26,11 @@ def _format_current_round_arguments(state: DebateState) -> str:
 
 
 def build_fact_checker_system_prompt(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.fact_checker import build_sc_fact_checker_system_prompt
+
+        return build_sc_fact_checker_system_prompt(state)
+
     lang = "Chinese" if state.config.language in ("zh", "auto") else "English"
 
     return f"""You are a professor of logic acting as a neutral third party to evaluate the logical consistency and factual accuracy of both sides' arguments.
@@ -50,6 +55,11 @@ def build_fact_checker_system_prompt(state: DebateState) -> str:
 
 
 def build_fact_checker_user_message(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.fact_checker import build_sc_fact_checker_user_message
+
+        return build_sc_fact_checker_user_message(state)
+
     msg = f"## Decision Question\n{state.question}\n"
     if state.context:
         msg += f"\n## Additional Context\n{state.context}\n"

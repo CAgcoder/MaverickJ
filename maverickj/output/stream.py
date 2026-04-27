@@ -110,6 +110,13 @@ def print_fact_check_result(result: FactCheckResponse) -> None:
             lines.append(f"   [yellow]Correction:[/yellow] {check.correction}")
         if check.fallacy_type:
             lines.append(f"   [red]Fallacy Type:[/red] {check.fallacy_type}")
+        if check.factuality_score is not None or check.logic_score is not None:
+            sc_parts = []
+            if check.factuality_score is not None:
+                sc_parts.append(f"factuality={check.factuality_score:.1f}")
+            if check.logic_score is not None:
+                sc_parts.append(f"logic={check.logic_score:.1f}")
+            lines.append(f"   [dim]Scores: {'  '.join(sc_parts)}[/dim]")
         lines.append("")
 
     lines.append(f"[bold]Overall Assessment:[/bold] {result.overall_assessment}")
@@ -134,6 +141,17 @@ def print_moderator_result(result: ModeratorResponse) -> None:
         lines.append("[bold]Key Divergences:[/bold]")
         for d in result.key_divergences:
             lines.append(f"  • {d}")
+        lines.append("")
+
+    if result.feasibility_scores or result.relevance_scores:
+        lines.append("[bold]Feasibility / Relevance (by argument id):[/bold]")
+        all_ids = sorted(set(result.feasibility_scores) | set(result.relevance_scores))
+        for aid in all_ids:
+            fsc = result.feasibility_scores.get(aid)
+            rsc = result.relevance_scores.get(aid)
+            f_part = f"{fsc:.1f}" if fsc is not None else "—"
+            r_part = f"{rsc:.1f}" if rsc is not None else "—"
+            lines.append(f"  • [{aid}] feasibility={f_part}  relevance={r_part}")
         lines.append("")
 
     # Convergence score visualised as a progress bar
