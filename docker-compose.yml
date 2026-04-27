@@ -8,3 +8,5 @@ services:
       - ./maverickj:/app/maverickj
       - ./config.yaml:/app/config.yaml:ro
       - ./reports:/app/reports
+      # Tests are not copied into the image; mount for `uv run pytest` / CI-style runs.
+      - ./tests:/app/tests:ro

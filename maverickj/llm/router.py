@@ -8,7 +8,15 @@ from maverickj.schemas.config import DebateEngineConfig, ModelAssignment
 from maverickj.llm.factory import create_model
 
 
-AGENT_ROLES = ["advocate", "critic", "fact_checker", "moderator", "report_generator"]
+AGENT_ROLES = [
+    "advocate",
+    "critic",
+    "fact_checker",
+    "moderator",
+    "report_generator",
+    "fusion_synthesizer",
+    "convergence_critic",
+]
 
 
 class ModelRouter:
@@ -19,13 +27,25 @@ class ModelRouter:
 
     def _init_models(self) -> None:
         if self.config.agents:
+            report_model: BaseChatModel | None = None
             for role in AGENT_ROLES:
-                assignment = getattr(self.config.agents, role)
+                assignment = getattr(self.config.agents, role, None)
+                if assignment is None:
+                    if report_model is None:
+                        report_assignment = getattr(self.config.agents, "report_generator")
+                        report_model = create_model(report_assignment)
+                        if report_assignment.fallback:
+                            fallback_model = create_model(report_assignment.fallback)
+                            report_model = report_model.with_fallbacks([fallback_model])
+                    self._models[role] = report_model
+                    continue
                 model = create_model(assignment)
                 if assignment.fallback:
                     fallback_model = create_model(assignment.fallback)
                     model = model.with_fallbacks([fallback_model])
                 self._models[role] = model
+                if role == "report_generator":
+                    report_model = model
         else:
             default = ModelAssignment(
                 provider=self.config.default_provider,

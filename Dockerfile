@@ -2,22 +2,23 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Build tools only if a wheel is missing (numpy / etc. usually ship manylinux wheels).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files first to leverage Docker layer cache
-COPY pyproject.toml README.md requirements.lock ./
+# Reproducible installs from the repo lockfile (uv), not requirements.lock.
+RUN pip install --no-cache-dir "uv>=0.5"
 
-# Install pinned runtime dependencies first, then install the package itself.
-RUN pip install --no-cache-dir -r requirements.lock
+COPY pyproject.toml README.md uv.lock ./
 
-# Copy project source code
 COPY maverickj/ ./maverickj/
 COPY config.yaml ./
 
-RUN pip install --no-cache-dir --no-deps -e .
+ENV UV_COMPILE_BYTECODE=1
+RUN uv sync --frozen --no-dev
 
-# Interactive CLI entrypoint
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="/app/.venv/bin:${PATH}"
+
 CMD ["python", "-m", "maverickj.cli"]

@@ -1,0 +1,48 @@
+[
+  {
+    "id": "EV-001",
+    "type": "port_strike",
+    "region": "sea",
+    "headline": "Major Southeast Asia port union strike continues",
+    "severity": "high",
+    "active": true,
+    "since": "2026-04-21"
+  },
+  {
+    "id": "EV-002",
+    "type": "oil_shock",
+    "region": "global",
+    "headline": "WTI volatility spikes on supply concerns",
+    "severity": "medium",
+    "active": true,
+    "since": "2026-04-24"
+  },
+  {
+    "id": "EV-003",
+    "type": "tariff_policy",
+    "region": "eu",
+    "headline": "EU announces tariff review window for industrial inputs",
+    "severity": "medium",
+    "active": true,
+    "since": "2026-04-17"
+  },
+  {
+    "id": "EV-004",
+    "type": "geopolitical",
+    "region": "us",
+    "headline": "Temporary customs backlog on selected routes",
+    "severity": "low",
+    "active": true,
+    "since": "2026-04-09"
+  },
+  {
+    "id": "EV-005",
+    "type": "logistics",
+    "region": "local",
+    "headline": "Regional trucking capacity recovers after fuel subsidy",
+    "severity": "low",
+    "active": true,
+    "since": "2026-04-20"
+  }
+]
+

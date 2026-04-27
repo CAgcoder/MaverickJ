@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -44,3 +44,7 @@ class DecisionReport(BaseModel):
     risk_factors: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
     debate_stats: Optional[DebateStats] = None
+    decision_matrix: Optional[list[Any]] = None
+    data_evidence: Optional[list[Any]] = None
+    minority_report: Optional[list[str]] = None
+    circuit_breakers: Optional[list[Any]] = None

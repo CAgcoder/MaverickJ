@@ -94,6 +94,8 @@ class ModeratorResponse(BaseModel):
     convergence_score: float = Field(description="Convergence score 0-1")
     should_continue: bool = Field(description="Whether to continue the debate")
     guidance_for_next_round: Optional[str] = Field(default=None, description="Focus guidance for the next round")
+    feasibility_scores: dict[str, float] = Field(default_factory=dict, description="Feasibility scores by argument ID")
+    relevance_scores: dict[str, float] = Field(default_factory=dict, description="Relevance scores by argument ID")
 
     @model_validator(mode="before")
     @classmethod

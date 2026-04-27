@@ -1,0 +1,9 @@
+{
+  "fetched_at": "2026-04-27T00:00:00Z",
+  "data": {
+    "CL=F": {"symbol": "CL=F", "price": 84.6, "change_pct": 0.012},
+    "NG=F": {"symbol": "NG=F", "price": 2.35, "change_pct": -0.008},
+    "EUR=X": {"symbol": "EUR=X", "price": 1.08, "change_pct": 0.004}
+  }
+}
+

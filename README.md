@@ -66,6 +66,7 @@ AI can augment human decision-making with vast knowledge — but don't let AI re
 ### Prerequisites
 
 - **Python** >= 3.12
+- **[uv](https://github.com/astral-sh/uv)** (recommended for local installs and lockfile-driven workflows)
 - At least one LLM API Key: [Anthropic Claude](https://console.anthropic.com/) (recommended), [OpenAI](https://platform.openai.com/), [Google Gemini](https://aistudio.google.com/)
 
 ### Option A: 🐳 Docker (Recommended)
@@ -83,7 +84,10 @@ docker compose run --rm debate
 
 # The container bind-mounts ./maverickj into /app/maverickj.
 # Code changes take effect immediately without rebuilding.
-# Rebuild only after changing pyproject.toml or requirements.lock.
+# Rebuild after changing `pyproject.toml` or `uv.lock` (dependency graph).
+
+# Run tests (image ships runtime deps only; pull dev deps once, then pytest):
+docker compose run --rm debate sh -lc "uv sync --frozen --extra dev && uv run pytest -q"
 ```
 
 ### Option B: Local Python
@@ -92,22 +96,19 @@ docker compose run --rm debate
 git clone https://github.com/CAgcoder/MaverickJ.git
 cd MaverickJ
 
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.lock
-pip install -e ".[dev]"
+uv sync --extra dev
 
 cp .env.example .env
 # Edit .env, fill in API Key
 
-debate-interactive              # Interactive mode
+uv run debate-interactive              # Interactive mode
 ```
 
 ### Option C: CLI One-Shot
 
 ```bash
-pip install -r requirements.lock
-pip install -e .
-python -m maverickj.main "Should we migrate our Java backend to Go?" "50-person team, Spring Boot for 3 years"
+uv sync
+uv run python -m maverickj.main "Should we migrate our Java backend to Go?" "50-person team, Spring Boot for 3 years"
 # Output: reports/debate-report.md
 ```
 
@@ -491,11 +492,11 @@ MaverickJ/
 ## Testing
 
 ```bash
-pip install -e ".[dev]"
-pytest                   # Run all tests
-pytest -v --tb=short     # Verbose output
-ruff check maverickj/ tests/   # Lint
-ruff format maverickj/ tests/  # Format
+uv sync --extra dev
+uv run pytest                   # Run all tests
+uv run pytest -v --tb=short     # Verbose output
+uv run ruff check maverickj/ tests/   # Lint
+uv run ruff format maverickj/ tests/  # Format
 ```
 
 | Test Module | Cases | Coverage |

@@ -16,6 +16,7 @@ class Argument(BaseModel):
     claim: str = Field(description="Argument claim")
     reasoning: str = Field(description="Reasoning process")
     evidence: Optional[str] = Field(default=None, description="Supporting evidence")
+    tool_call_ids: list[str] = Field(default_factory=list, description="Referenced tool call IDs")
     status: ArgumentStatus = Field(default=ArgumentStatus.ACTIVE, description="Argument status")
 
 
@@ -38,6 +39,8 @@ class FactCheck(BaseModel):
     explanation: str = Field(description="Explanation of the verdict")
     correction: Optional[str] = Field(default=None, description="Suggested correction")
     fallacy_type: Optional[str] = Field(default=None, description="Type of logical fallacy, if any")
+    factuality_score: Optional[float] = Field(default=None, description="Factuality score [0, 10]")
+    logic_score: Optional[float] = Field(default=None, description="Logic score [0, 10]")
 
 
 class ArgumentRecord(BaseModel):

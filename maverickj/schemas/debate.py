@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +21,7 @@ class DebateConfig(BaseModel):
     convergence_score_target: float = 0.8
     language: str = "auto"
     transcript_compression_after_round: int = 2
+    mode: Literal["general", "supply_chain"] = "general"
 
 
 class DebateMetadata(BaseModel):
@@ -57,3 +58,9 @@ class DebateState(BaseModel):
     current_round_critic: Optional[AgentResponse] = None
     current_round_fact_check: Optional[FactCheckResponse] = None
     current_round_moderator: Optional[ModeratorResponse] = None
+    # Supply-chain mode fields (kept optional for general-mode compatibility)
+    tool_calls: dict[str, Any] = Field(default_factory=dict)
+    current_round_data_pack: Optional[dict[str, Any]] = None
+    fusion_draft: Optional[Any] = None
+    convergence_critiques: list[Any] = Field(default_factory=list)
+    final_fused_decision: Optional[Any] = None
