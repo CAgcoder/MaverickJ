@@ -1,9 +1,41 @@
 {
-  "fetched_at": "2026-04-27T00:00:00Z",
+  "fetched_at": "2026-04-27T21:43:54.392779Z",
   "data": {
-    "CL=F": {"symbol": "CL=F", "price": 84.6, "change_pct": 0.012},
-    "NG=F": {"symbol": "NG=F", "price": 2.35, "change_pct": -0.008},
-    "EUR=X": {"symbol": "EUR=X", "price": 1.08, "change_pct": 0.004}
+    "CL=F": {
+      "symbol": "CL=F",
+      "price": 96.68,
+      "change_pct": 0.024153,
+      "currency": "USD",
+      "open": 95.599998,
+      "high": 97.669998,
+      "low": 94.589996,
+      "close": 96.68,
+      "volume": 196816,
+      "as_of": "2026-04-27T00:00:00-04:00"
+    },
+    "NG=F": {
+      "symbol": "NG=F",
+      "price": 2.73,
+      "change_pct": 0.082045,
+      "currency": "USD",
+      "open": 2.683,
+      "high": 2.808,
+      "low": 2.677,
+      "close": 2.73,
+      "volume": 161796,
+      "as_of": "2026-04-27T00:00:00-04:00"
+    },
+    "EUR=X": {
+      "symbol": "EUR=X",
+      "price": 0.8527,
+      "change_pct": -0.003716,
+      "currency": "EUR",
+      "open": 0.8536,
+      "high": 0.8546,
+      "low": 0.8505,
+      "close": 0.8527,
+      "volume": 0,
+      "as_of": "2026-04-27T00:00:00+01:00"
+    }
   }
 }
-

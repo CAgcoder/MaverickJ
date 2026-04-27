@@ -40,3 +40,10 @@ debate:
   convergence_score_target: 0.8
   language: auto
   transcript_compression_after_round: 2
+
+supply_chain:
+  data_path: ./maverickj/supply_chain/data
+  market_data:
+    tickers: [CL=F, NG=F, EUR=X]
+    cache_ttl_hours: 6
+    offline_mode: false

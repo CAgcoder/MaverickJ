@@ -6,13 +6,13 @@ from maverickj.supply_chain.schemas.tool_call import ToolCallRecord
 
 
 class ToolCallRegistry:
-    """Generate and persist tool call records into state.tool_calls."""
+    """Generate and persist tool call records into a mutable tool_calls dict."""
 
-    def __init__(self, state):
-        self.state = state
+    def __init__(self, tool_calls: dict[str, Any]):
+        self.tool_calls = tool_calls
 
     def _next_id(self) -> str:
-        current = len(self.state.tool_calls) + 1
+        current = len(self.tool_calls) + 1
         return f"TC-{current:03d}"
 
     def record(
@@ -36,6 +36,6 @@ class ToolCallRegistry:
             invoked_by=invoked_by,
             source=source,
         )
-        self.state.tool_calls[record.id] = record.model_dump(mode="json")
+        self.tool_calls[record.id] = record.model_dump(mode="json")
         return record
 

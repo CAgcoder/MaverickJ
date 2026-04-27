@@ -80,6 +80,7 @@ async def run_debate(
         current_round=0,
         status=DebateStatus.RUNNING,
         metadata=DebateMetadata(started_at=datetime.now()),
+        supply_chain_config=config.supply_chain,
     )
 
     # Create model router

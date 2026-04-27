@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from maverickj.schemas.agents import AgentResponse, FactCheckResponse, ModeratorResponse
 from maverickj.schemas.arguments import ArgumentRecord
+from maverickj.schemas.supply_chain_engine import SupplyChainConfig
 
 
 class DebateStatus(str, Enum):
@@ -64,3 +65,5 @@ class DebateState(BaseModel):
     fusion_draft: Optional[Any] = None
     convergence_critiques: list[Any] = Field(default_factory=list)
     final_fused_decision: Optional[Any] = None
+    # Copied from DebateEngineConfig for graph nodes (paths, tickers, MC settings).
+    supply_chain_config: Optional[SupplyChainConfig] = None
