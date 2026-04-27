@@ -5,6 +5,26 @@ from __future__ import annotations
 from maverickj.schemas.debate import DebateState
 
 
+def build_sc_moderator_user_appendix(state: DebateState) -> str:
+    """Neutral ledger digest — moderator user message otherwise omits tool_calls entirely."""
+    tc = state.tool_calls or {}
+    by_src: dict[str, int] = {}
+    for _k, rec in tc.items():
+        if isinstance(rec, dict):
+            src = str(rec.get("source") or "?")
+            by_src[src] = by_src.get(src, 0) + 1
+    lines = "\n".join(f"- `{k}`: {v}" for k, v in sorted(by_src.items()))
+    if not lines.strip():
+        lines = "- (none)"
+
+    return f"""
+## Supply-chain calibration (not a verdict)
+- **Ledger**: {len(tc)} tool-call records total (warmup + Tier-2).
+- **By `source`:**
+{lines}
+- Seed **events/market** intentionally include **stress scenarios** (e.g. active regional disruptions touching SEA lanes). That makes tail-risk arguments easy to articulate — it does **not** imply Risk wins by default. Judge **each argument id** on citations vs ledger + fact-check; do **not** systematically favour critic over advocate."""
+
+
 def _collect_arg_ids(state: DebateState) -> list[str]:
     ids: list[str] = []
     if state.current_round_advocate:
@@ -44,4 +64,5 @@ def build_sc_moderator_system_prompt(state: DebateState) -> str:
 - `key_divergences` must be a **JSON array** of strings, not a serialized string.
 - `feasibility_scores` and `relevance_scores` must be **JSON objects** (string keys → float values), e.g. `{{"COST-R1-01": 7.5, "RISK-R1-01": 8.0}}`.
 - **NEVER** serialize any array or object as a single quoted string.
-- Return raw JSON only for structured fields."""
+- Return raw JSON only for structured fields.
+- Vivid downside scenarios in the transcript are **stress inputs**, not automatic wins for Risk — weigh Cost-side ledger-backed economics vs Risk-side resilience **fairly per argument id**."""

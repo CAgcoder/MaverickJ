@@ -93,5 +93,9 @@ def build_moderator_user_message(state: DebateState) -> str:
     if state.context:
         msg += f"\n## Additional Context\n{state.context}\n"
     msg += f"\n## Full Debate Transcript\n{_format_full_transcript(state)}\n"
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.moderator import build_sc_moderator_user_appendix
+
+        msg += build_sc_moderator_user_appendix(state)
     msg += f"Please deliver your ruling for round {state.current_round}."
     return msg
