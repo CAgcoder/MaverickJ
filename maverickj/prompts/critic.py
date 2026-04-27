@@ -23,6 +23,11 @@ def _format_advocate_output(advocate: AgentResponse) -> str:
 
 
 def build_critic_system_prompt(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts import risk_critic
+
+        return risk_critic.build_risk_critic_system_prompt(state)
+
     current_round = state.current_round
     lang = "Chinese" if state.config.language in ("zh", "auto") else "English"
 
@@ -51,6 +56,11 @@ def build_critic_system_prompt(state: DebateState) -> str:
 
 
 def build_critic_user_message(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts import risk_critic
+
+        return risk_critic.build_risk_critic_user_message(state)
+
     msg = build_advocate_user_message(state)
 
     if state.current_round_advocate:

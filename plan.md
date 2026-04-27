@@ -161,6 +161,8 @@ maverickj/supply_chain/
 
 **种子数据**：3 SKU × 5 供应商（local/sea/eu/us 覆盖）× 3 周预测，足够支撑「是否切换供应商」的有意义辩论。
 
+`Supplier.region` 与 `events.json` 的 `region` 在 MVP 中均为**短码**（如 `sea` 表「东南亚/海运系路径」，**不是**自然语言「Southeast Asia」）。`query_supplier_tool` / `query_active_events` 为**精确匹配**；若 Tier-2 传入与种子不一致的字符串，会得到**空列表**，易与「业务上无供应商/无事件」混淆。当前实践中 **bind_tools + 模型自行补算** 已可较好运作；**不在 MVP 内**单独解决该 UX，留待 **V1.1 工具参数归一**（见下方「V1.1 延后」）。
+
 **yfinance**：核心依赖（用户决策）。`fetch_and_cache(tickers, cache_path)` 启动时调用一次写 JSON；`fetch_cached()` 后续读缓存。`config.supply_chain.market_data.cache_ttl_hours: 6`，过期才刷新。`offline_mode: true` 时强制用缓存（CI/演示用）。
 默认 tickers：
 - `CL=F` — WTI 原油期货（影响海运/陆运成本）
@@ -342,6 +344,7 @@ supply_chain:
 
 ## V1.1 延后（MVP 不实现）
 
+- **供应链工具参数与「空集」可预期性**（MVP 已知、后续改进）：为 `query_supplier_tool` / `query_events_tool` 的 `region`、`type`、`severity` 等建立与种子/事件库一致的**枚举或同义词表**（例：`sea` ⟷ Southeast Asia / 东南亚），并可选：大小写折叠、空结果时随响应返回**当前合法取值列表**以引导下一轮 tool 调用；与 fact_checker 对 `tool_call_ids` 的校验相配合，减少「因参数拼写与数据短码不一致导致的假空集」对叙事与评分的影响
 - OpenCLI 真实爬虫（`events.py` 接口契约 MVP 已锁定，替换实现即可）
 - yfinance 实时调用（同上，MVP 用缓存模式）
 - 多 Agent 派系扩展（环保派、合规派 ESG 等）

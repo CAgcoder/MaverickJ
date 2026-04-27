@@ -11,6 +11,7 @@ from maverickj.llm.router import ModelRouter
 from maverickj.schemas.debate import DebateState
 from maverickj.schemas.supply_chain_engine import SupplyChainConfig
 from maverickj.supply_chain.data.data_loader import init_db
+from maverickj.supply_chain.paths import resolve_supply_chain_paths
 from maverickj.supply_chain.tools.eoq import calc_eoq
 from maverickj.supply_chain.tools.erp import get_forecast, get_full_snapshot
 from maverickj.supply_chain.tools.events import query_active_events
@@ -31,18 +32,15 @@ def _guess_sku(question: str) -> str:
     return _DEFAULT_SKU
 
 
-def _resolve_paths(sc: SupplyChainConfig) -> tuple[Path, Path, Path, Path]:
-    base = Path(sc.data_path)
-    if not base.is_absolute():
-        base = Path.cwd() / base
-    return base, base / "seed.db", base / "events.json", base / "market_cache.json"
-
-
 async def data_warmup_node(state: DebateState, router: ModelRouter) -> dict[str, Any]:
     """Pre-compute ERP / events / market + baseline EOQ / MC / TCO; write tool_calls + data_pack."""
     _ = router
     sc = state.supply_chain_config or SupplyChainConfig()
-    base, db_path, events_path, market_cache_path = _resolve_paths(sc)
+    db_s, events_s, market_s = resolve_supply_chain_paths(sc)
+    db_path = Path(db_s)
+    events_path = Path(events_s)
+    market_cache_path = Path(market_s)
+    base = db_path.parent
 
     tool_calls: dict[str, Any] = dict(state.tool_calls)
     registry = ToolCallRegistry(tool_calls)

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from maverickj.agents.base import BaseAgent
 from maverickj.llm.router import ModelRouter
+from maverickj.supply_chain.tools.registry import ToolCallRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,10 @@ class SupplyChainAgent(BaseAgent):
         tools: list[Any],
         *,
         max_tool_calls: int = 5,
+        tool_registry: ToolCallRegistry | None = None,
+        invoked_at_round: int = 1,
+        invoked_by: str = "",
+        source: str = "agent",
     ) -> tuple[Any, dict]:
         if not tools or max_tool_calls <= 0:
             return await self.invoke(system_prompt, user_message, output_schema)
@@ -74,6 +79,18 @@ class SupplyChainAgent(BaseAgent):
                     except Exception as err:  # noqa: BLE001
                         logger.exception("[%s] tool %s failed", self.role, name)
                         payload = {"error": str(err)}
+                if tool_registry is not None and name:
+                    out_dict = payload if isinstance(payload, dict) else {"result": payload}
+                    in_dict = dict(args) if isinstance(args, dict) else {"args": args}
+                    tool_registry.record(
+                        tool_name=name,
+                        inputs=in_dict,
+                        outputs=out_dict,
+                        summary=f"{name} tier-2",
+                        invoked_at_round=invoked_at_round,
+                        invoked_by=invoked_by or self.role,
+                        source=source,
+                    )
                 calls_used += 1
                 text = json.dumps(payload, default=str)[:12000]
                 messages.append(ToolMessage(content=text, tool_call_id=tool_call_id))

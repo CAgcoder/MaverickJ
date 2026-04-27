@@ -33,6 +33,11 @@ def _format_history(rounds: list[DebateRound]) -> str:
 
 
 def build_advocate_system_prompt(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts import cost_advocate
+
+        return cost_advocate.build_cost_advocate_system_prompt(state)
+
     current_round = state.current_round
     lang = "Chinese" if state.config.language in ("zh", "auto") else "English"
 
@@ -73,6 +78,11 @@ def build_advocate_system_prompt(state: DebateState) -> str:
 
 
 def build_advocate_user_message(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts import cost_advocate
+
+        return cost_advocate.build_cost_advocate_user_message(state)
+
     msg = f"## Decision Question\n{state.question}\n"
     if state.context:
         msg += f"\n## Additional Context\n{state.context}\n"

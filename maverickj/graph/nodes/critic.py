@@ -13,7 +13,7 @@ async def critic_node(state: DebateState, router: ModelRouter) -> dict:
     logger.info(f"=== Round {state.current_round} - Critic turn ===")
 
     agent = CriticAgent(router)
-    response, usage = await agent.run(state)
+    response, usage, tool_calls_update = await agent.run(state)
 
     # Update ArgumentRegistry
     registry = ArgumentRegistry(state.argument_registry)
@@ -32,7 +32,7 @@ async def critic_node(state: DebateState, router: ModelRouter) -> dict:
     input_tokens = usage.get("input_tokens", usage.get("prompt_tokens", 0))
     output_tokens = usage.get("output_tokens", usage.get("completion_tokens", 0))
 
-    return {
+    out: dict = {
         "current_round_critic": response,
         "argument_registry": registry.to_dict(),
         "metadata": state.metadata.model_copy(update={
@@ -40,3 +40,6 @@ async def critic_node(state: DebateState, router: ModelRouter) -> dict:
             "total_tokens_used": state.metadata.total_tokens_used + input_tokens + output_tokens,
         }),
     }
+    if tool_calls_update is not None:
+        out["tool_calls"] = tool_calls_update
+    return out

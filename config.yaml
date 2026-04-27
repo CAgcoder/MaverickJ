@@ -40,6 +40,8 @@ debate:
   convergence_score_target: 0.8
   language: auto
   transcript_compression_after_round: 2
+  # general | supply_chain — 测供应链叙事时用 supply_chain
+  mode: supply_chain
 
 supply_chain:
   data_path: ./maverickj/supply_chain/data
@@ -47,3 +49,6 @@ supply_chain:
     tickers: [CL=F, NG=F, EUR=X]
     cache_ttl_hours: 6
     offline_mode: false
+  # false：Cost/Risk 文案 + 普通结构化输出，不走 bind_tools；true：advocate/critic 启用 Tier-2 工具循环
+  agent_tools:
+    enabled: true
