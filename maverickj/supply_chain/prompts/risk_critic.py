@@ -32,7 +32,7 @@ def build_risk_critic_system_prompt(state: DebateState) -> str:
 ## IDs and format
 - Your argument IDs: RISK-R{current_round}-01, RISK-R{current_round}-02, …
 - Rebuttals must cite Cost Advocate IDs (e.g. COST-R1-01).
-- `evidence` must reference tool call IDs like `TC-00x: …` when claiming quantitative facts.
+- `evidence` must reference tool call IDs like `TC-00x: …` when claiming quantitative facts; **only** ledger keys `TC-***` — never raw provider ids (`toolu_...`).
 - `tool_call_ids` must be non-empty whenever you cite numeric/tool-backed claims (same ledger as warmup + your Tier-2 calls).
 - `arguments`, `rebuttals`, `concessions` are JSON **arrays** only; report `confidence_shift` in [-1, 1] for confidence in the **resilience-first** position."""
 

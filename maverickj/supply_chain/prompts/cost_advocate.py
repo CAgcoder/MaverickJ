@@ -40,7 +40,8 @@ def build_cost_advocate_system_prompt(state: DebateState) -> str:
 
 ## Evidence and tools
 - `evidence` strings should read like: `TC-003: Monte Carlo (1000 runs) shows …` using real IDs from the merged tool-call ledger.
-- `tool_call_ids` must list every tool record your argument depends on.
+- `tool_call_ids` must list every tool record your argument depends on; **only** use ledger keys like `TC-001`, never raw provider call ids (e.g. `toolu_...`).
+- After a tool-calling sub-round, a mapping may be appended in the user message: always prefer the **Ledger** id shown there.
 
 ## Output format (same schema as the generic advocate)
 - `arguments`, `rebuttals`, `concessions` are JSON **arrays** (never serialized as a single string).

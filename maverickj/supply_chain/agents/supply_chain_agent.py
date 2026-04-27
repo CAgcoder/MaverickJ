@@ -35,16 +35,18 @@ class SupplyChainAgent(BaseAgent):
         invoked_at_round: int = 1,
         invoked_by: str = "",
         source: str = "agent",
-    ) -> tuple[Any, dict]:
+    ) -> tuple[Any, dict, dict[str, str]]:
         if not tools or max_tool_calls <= 0:
-            return await self.invoke(system_prompt, user_message, output_schema)
+            parsed, usage = await self.invoke(system_prompt, user_message, output_schema)
+            return parsed, usage, {}
 
         model = self.router.get_model(self.role)
         try:
             bound = model.bind_tools(tools)
         except Exception as exc:  # noqa: BLE001
             logger.warning("[%s] bind_tools unsupported, using structured-only: %s", self.role, exc)
-            return await self.invoke(system_prompt, user_message, output_schema)
+            parsed, usage = await self.invoke(system_prompt, user_message, output_schema)
+            return parsed, usage, {}
 
         by_name = {getattr(t, "name", None): t for t in tools if getattr(t, "name", None)}
         messages: list[Any] = [
@@ -52,6 +54,7 @@ class SupplyChainAgent(BaseAgent):
             HumanMessage(content=user_message),
         ]
 
+        provider_to_ledger: dict[str, str] = {}
         calls_used = 0
         while calls_used < max_tool_calls:
             response = await bound.ainvoke(messages)
@@ -82,7 +85,7 @@ class SupplyChainAgent(BaseAgent):
                 if tool_registry is not None and name:
                     out_dict = payload if isinstance(payload, dict) else {"result": payload}
                     in_dict = dict(args) if isinstance(args, dict) else {"args": args}
-                    tool_registry.record(
+                    rec = tool_registry.record(
                         tool_name=name,
                         inputs=in_dict,
                         outputs=out_dict,
@@ -91,6 +94,8 @@ class SupplyChainAgent(BaseAgent):
                         invoked_by=invoked_by or self.role,
                         source=source,
                     )
+                    if tool_call_id:
+                        provider_to_ledger[tool_call_id] = rec.id
                 calls_used += 1
                 text = json.dumps(payload, default=str)[:12000]
                 messages.append(ToolMessage(content=text, tool_call_id=tool_call_id))
@@ -104,5 +109,15 @@ class SupplyChainAgent(BaseAgent):
         augmented = user_message
         if transcript_lines:
             augmented += "\n\n### Tool transcript\n" + "\n".join(transcript_lines)
+        if provider_to_ledger:
+            lines = [
+                "### Provider → Ledger ID mapping (mandatory)",
+                "In `arguments[].tool_call_ids` and in `evidence` strings, cite **only** Ledger IDs (`TC-***`). "
+                "Do **not** use raw provider ids (`toolu_...`, etc.).",
+            ]
+            for prov, lid in sorted(provider_to_ledger.items()):
+                lines.append(f"- `{prov}` → **{lid}**")
+            augmented += "\n\n" + "\n".join(lines)
 
-        return await self.invoke(system_prompt, augmented, output_schema)
+        parsed, usage = await self.invoke(system_prompt, augmented, output_schema)
+        return parsed, usage, provider_to_ledger

@@ -28,7 +28,9 @@ class CriticAgent(BaseAgent):
             registry = ToolCallRegistry(tool_calls)
             agent = SupplyChainAgent(self.router, self.role)
             max_calls = sc.agent_tools.max_tool_calls_per_turn
-            response, usage = await agent.invoke_with_tools(
+            from maverickj.supply_chain.agents.tool_id_normalize import normalize_agent_response_tool_ids
+
+            response, usage, id_map = await agent.invoke_with_tools(
                 system_prompt,
                 user_message,
                 AgentResponse,
@@ -39,6 +41,7 @@ class CriticAgent(BaseAgent):
                 invoked_by="critic",
                 source="agent:risk_critic",
             )
+            response = normalize_agent_response_tool_ids(response, id_map)
             return response, usage, tool_calls
         response, usage = await self.invoke(system_prompt, user_message, AgentResponse)
         return response, usage, None
