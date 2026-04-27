@@ -1,5 +1,6 @@
 from langchain_core.language_models import BaseChatModel
 
+from maverickj.llm.prompt_cache import ANTHROPIC_MESSAGES_CACHE_CONTROL
 from maverickj.schemas.config import ModelAssignment
 
 
@@ -11,10 +12,13 @@ def create_model(assignment: ModelAssignment) -> BaseChatModel:
 
     if provider == "claude":
         from langchain_anthropic import ChatAnthropic
+
+        # Same as anthropic.messages.create(..., cache_control={"type": "ephemeral"}, ...)
         return ChatAnthropic(
             model=assignment.model,
             temperature=temperature,
             max_tokens=max_tokens,
+            model_kwargs={"cache_control": ANTHROPIC_MESSAGES_CACHE_CONTROL},
         )
     elif provider == "openai":
         from langchain_openai import ChatOpenAI

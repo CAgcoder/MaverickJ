@@ -1,5 +1,3 @@
-from typing import Optional
-
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel
