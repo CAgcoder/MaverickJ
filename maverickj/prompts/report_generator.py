@@ -1,7 +1,7 @@
 from maverickj.schemas.debate import DebateState
 
 
-def build_report_generator_system_prompt(state: DebateState) -> str:
+def _build_generic_report_generator_system_prompt(state: DebateState) -> str:
     lang = "Chinese" if state.config.language in ("zh", "auto") else "English"
 
     return f"""You are a decision report generator. Your task is to produce a structured decision report based on the complete debate transcript.
@@ -25,7 +25,15 @@ Generate a structured decision report from the full debate record. You must outp
 You MUST output a single valid JSON object that strictly conforms to the required schema. Do NOT use XML tags or any other format. All nested objects (recommendation, etc.) must be proper JSON objects, not strings. Do NOT include a "debate_stats" field — it will be populated automatically."""
 
 
-def build_report_generator_user_message(state: DebateState) -> str:
+def build_report_generator_system_prompt(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.report_generator import build_sc_report_generator_system_prompt
+
+        return build_sc_report_generator_system_prompt(state)
+    return _build_generic_report_generator_system_prompt(state)
+
+
+def _build_generic_report_generator_user_message(state: DebateState) -> str:
     msg = f"## Decision Question\n{state.question}\n"
     if state.context:
         msg += f"\n## Additional Context\n{state.context}\n"
@@ -75,3 +83,11 @@ def build_report_generator_user_message(state: DebateState) -> str:
 
     msg += "\n\nPlease generate the decision report based on the above debate transcript."
     return msg
+
+
+def build_report_generator_user_message(state: DebateState) -> str:
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.prompts.report_generator import build_sc_report_generator_user_message
+
+        return build_sc_report_generator_user_message(state)
+    return _build_generic_report_generator_user_message(state)

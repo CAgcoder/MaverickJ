@@ -30,6 +30,7 @@ def build_risk_critic_system_prompt(state: DebateState) -> str:
 - Avoid **single_point_failure** (always discuss backup / dual source). Avoid **lead_time_optimism** — use OTIF and statistical lead-time uncertainty, not best-case transits.
 
 ## IDs and format
+- In Chinese text fields (`claim`, `reasoning`, `evidence`), **do not** wrap short emphasis with ASCII `"` — use 「corner quotes」 or none (raw `"` breaks JSON).
 - Your argument IDs: RISK-R{current_round}-01, RISK-R{current_round}-02, …
 - Rebuttals must cite Cost Advocate IDs (e.g. COST-R1-01).
 - `evidence` must reference tool call IDs like `TC-00x: …` when claiming quantitative facts; **only** ledger keys `TC-***` — never raw provider ids (`toolu_...`).

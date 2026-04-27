@@ -8,7 +8,7 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import yaml
 from dotenv import load_dotenv
@@ -52,6 +52,8 @@ async def run_debate(
     config: Optional[DebateEngineConfig] = None,
     context: Optional[str] = None,
     on_event: Optional[EventCallback] = _SENTINEL,  # type: ignore[assignment]
+    *,
+    mode_override: Optional[Literal["general", "supply_chain"]] = None,
 ) -> DebateState:
     """Run a complete debate.
 
@@ -63,18 +65,23 @@ async def run_debate(
             - Omitted / _SENTINEL → use Rich terminal output (default, backwards-compatible)
             - None              → silent mode, no output
             - custom callable   → receives DebateEvent, suppresses Rich output
+        mode_override: When set, overrides ``config.debate.mode`` (general vs supply_chain graph).
     """
     use_rich = on_event is _SENTINEL  # type: ignore[comparison-overlap]
 
     if config is None:
         config = load_config()
 
+    debate_cfg = config.debate
+    if mode_override is not None:
+        debate_cfg = debate_cfg.model_copy(update={"mode": mode_override})
+
     # Initialise state
     initial_state = DebateState(
         id=str(uuid.uuid4()),
         question=question,
         context=context,
-        config=config.debate,
+        config=debate_cfg,
         rounds=[],
         argument_registry={},
         current_round=0,
@@ -86,8 +93,13 @@ async def run_debate(
     # Create model router
     router = ModelRouter(config)
 
-    # Build LangGraph
-    app = build_debate_graph(router)
+    # Build LangGraph (supply_chain adds data_warmup + fusion chain before report)
+    if debate_cfg.mode == "supply_chain":
+        from maverickj.supply_chain.builder import build_supply_chain_graph
+
+        app = build_supply_chain_graph(router)
+    else:
+        app = build_debate_graph(router)
 
     def _emit(event_type: DebateEventType, round_num: int, data=None) -> None:
         if use_rich:
@@ -162,6 +174,27 @@ async def run_debate(
     return final_state
 
 
+def _parse_cli_args(argv: list[str]) -> tuple[str, Optional[str], Optional[str]]:
+    """Return (question, context, mode_override). Supports ``--mode general|supply_chain`` anywhere."""
+    mode: Optional[str] = None
+    rest: list[str] = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--mode" and i + 1 < len(argv):
+            mode = argv[i + 1]
+            i += 2
+            continue
+        rest.append(argv[i])
+        i += 1
+    if mode is not None and mode not in ("general", "supply_chain"):
+        raise ValueError(f"Invalid --mode {mode!r}; expected general or supply_chain")
+    if not rest:
+        raise ValueError("missing question")
+    question = rest[0]
+    context = rest[1] if len(rest) > 1 else None
+    return question, context, mode
+
+
 def main():
     """CLI entry point."""
     load_dotenv()
@@ -173,15 +206,25 @@ def main():
     )
 
     if len(sys.argv) < 2:
-        print("Usage: python -m maverickj.main <decision question> [context]")
-        print('Example: python -m maverickj.main "Should we migrate our Java backend to Go?" "50-person team, 3 years on Spring Boot"')
+        print("Usage: python -m maverickj.main [--mode general|supply_chain] <decision question> [context]")
+        print(
+            'Example: python -m maverickj.main --mode supply_chain '
+            '"Switch SKU-A21 supplier to SEA?"'
+        )
         sys.exit(1)
 
-    question = sys.argv[1]
-    context = sys.argv[2] if len(sys.argv) > 2 else None
+    try:
+        question, context, mode_s = _parse_cli_args(sys.argv[1:])
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    mode_override: Optional[Literal["general", "supply_chain"]] = None
+    if mode_s in ("general", "supply_chain"):
+        mode_override = mode_s
 
     config = load_config()
-    state = asyncio.run(run_debate(question, config, context))
+    state = asyncio.run(run_debate(question, config, context, mode_override=mode_override))
 
     if state and state.final_report:
         report = state.final_report

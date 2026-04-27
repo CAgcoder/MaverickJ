@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -8,28 +9,67 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# LLMs often wrap short Chinese emphasis with ASCII quotes: 严重度为"高"，… — breaks JSON strings.
+# Third group includes fullwidth punctuation (e.g. U+FF0C ，) via \uff00-\uffef.
+_CJK_STRAY_QUOTE = re.compile(
+    r'([\u4e00-\u9fff\u3000-\u303f\uff08-\uff09])"([^"\n]{1,120})"([\u3000-\u303f\u4e00-\u9fff\uff00-\uffef])',
+)
+
+
+def _repair_cjk_emphasis_quotes_in_json_text(s: str) -> str:
+    """Replace CJK emphasis patterns like 为\"高\"， with corner quotes so json.loads can succeed."""
+    cur = s
+    for _ in range(16):
+        nxt = _CJK_STRAY_QUOTE.sub(r"\1「\2」\3", cur)
+        if nxt == cur:
+            break
+        cur = nxt
+    return cur
+
+
+def _strip_markdown_json_fence(raw: str) -> str:
+    v_cleaned = raw.strip()
+    if v_cleaned.startswith("```json"):
+        v_cleaned = v_cleaned[7:]
+    elif v_cleaned.startswith("```"):
+        v_cleaned = v_cleaned[3:]
+    if v_cleaned.endswith("```"):
+        v_cleaned = v_cleaned[:-3]
+    return v_cleaned.strip()
+
+
+def _parse_json_array_string_with_fence_strip(raw: str) -> Optional[list[Any]]:
+    """Parse a JSON array from an LLM-produced string; repair stray ASCII quotes inside Chinese prose."""
+    v_cleaned = _strip_markdown_json_fence(raw)
+    repaired = _repair_cjk_emphasis_quotes_in_json_text(v_cleaned)
+    candidates = [v_cleaned]
+    if repaired != v_cleaned:
+        candidates.append(repaired)
+
+    for i, candidate in enumerate(candidates):
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, list):
+                if i > 0:
+                    logger.warning(
+                        "JSON list parsed after CJK quote repair (stray ASCII quotes inside Chinese text)."
+                    )
+                return parsed
+        except (json.JSONDecodeError, ValueError):
+            continue
+    return None
+
+
 def _coerce_json_string_to_list(v: Any) -> Any:
     """If the LLM returns a list field as a JSON-encoded string, parse it first."""
     if isinstance(v, str):
-        # 1. 移除大模型经常带上的 Markdown 反引号
-        v_cleaned = v.strip()
-        if v_cleaned.startswith("```json"):
-            v_cleaned = v_cleaned[7:]
-        elif v_cleaned.startswith("```"):
-            v_cleaned = v_cleaned[3:]
-        if v_cleaned.endswith("```"):
-            v_cleaned = v_cleaned[:-3]
-        v_cleaned = v_cleaned.strip()
-
+        parsed = _parse_json_array_string_with_fence_strip(v)
+        if parsed is not None:
+            return parsed
         try:
-            parsed = json.loads(v_cleaned)
-            if isinstance(parsed, list):
-                return parsed
-        except (json.JSONDecodeError, ValueError) as e:
-            # 2. 打印/记录错误，千万不要直接 pass 掉，否则无从排查
-            logger.error(f"JSON 预处理解析失败: {e}\n问题字符串: {v}")
-            # 依然返回原值，让外部的 Pydantic 抛出校验异常，触发重试机制
-            pass 
+            json.loads(_strip_markdown_json_fence(v))
+        except (json.JSONDecodeError, ValueError) as last_err:
+            logger.error(f"JSON 预处理解析失败: {last_err}\n问题字符串: {v}")
     return v
 
 
@@ -50,12 +90,9 @@ class AgentResponse(BaseModel):
             for key in ("arguments", "rebuttals", "concessions"):
                 val = data.get(key)
                 if isinstance(val, str):
-                    try:
-                        parsed = json.loads(val)
-                        if isinstance(parsed, list):
-                            data[key] = parsed
-                    except (json.JSONDecodeError, ValueError):
-                        pass
+                    parsed = _parse_json_array_string_with_fence_strip(val)
+                    if parsed is not None:
+                        data[key] = parsed
         return data
 
     @field_validator("arguments", "rebuttals", "concessions", mode="before")
@@ -74,12 +111,9 @@ class FactCheckResponse(BaseModel):
         if isinstance(data, dict):
             val = data.get("checks")
             if isinstance(val, str):
-                try:
-                    parsed = json.loads(val)
-                    if isinstance(parsed, list):
-                        data["checks"] = parsed
-                except (json.JSONDecodeError, ValueError):
-                    pass
+                parsed = _parse_json_array_string_with_fence_strip(val)
+                if parsed is not None:
+                    data["checks"] = parsed
         return data
 
     @field_validator("checks", mode="before")
@@ -103,12 +137,9 @@ class ModeratorResponse(BaseModel):
         if isinstance(data, dict):
             val = data.get("key_divergences")
             if isinstance(val, str):
-                try:
-                    parsed = json.loads(val)
-                    if isinstance(parsed, list):
-                        data["key_divergences"] = parsed
-                except (json.JSONDecodeError, ValueError):
-                    pass
+                parsed = _parse_json_array_string_with_fence_strip(val)
+                if parsed is not None:
+                    data["key_divergences"] = parsed
         return data
 
     @field_validator("key_divergences", mode="before")

@@ -254,6 +254,14 @@ def render_report_to_markdown(report: DecisionReport, state: DebateState) -> str
             lines.append(f"{i}. {step}")
         lines.append("")
 
+    # Supply-chain extras (decision matrix, evidence, minority, circuit breakers).
+    # Always render for supply_chain mode: LLMs sometimes omit optional fields (empty list is falsy);
+    # placeholders in output_extras avoid silent absence of e.g. circuit breakers.
+    if state.config.mode == "supply_chain":
+        from maverickj.supply_chain.output_extras import render_supply_chain_extras
+
+        lines.extend(render_supply_chain_extras(report, state))
+
     # Debate Stats
     lines.append("## Debate Statistics")
     lines.append("")

@@ -33,9 +33,19 @@ agents:
     model: claude-sonnet-4-6  # Final deliverable the user reads — synthesis quality matters most
     temperature: 0.4
     max_tokens: 8192
+  fusion_synthesizer:
+    provider: claude
+    model: claude-sonnet-4-6
+    temperature: 0.4
+    max_tokens: 8192
+  convergence_critic:
+    provider: claude
+    model: claude-sonnet-4-6
+    temperature: 0.5
+    max_tokens: 8192
 
 debate:
-  max_rounds: 5
+  max_rounds: 2
   convergence_threshold: 2
   convergence_score_target: 0.8
   language: auto
